@@ -11,7 +11,16 @@ async function postJson<T>(path: string, body: any, timeoutMs = 1500): Promise<T
   return new Promise((resolve, reject) => {
     const req = http.request(
       AC_URL + path,
-      { method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': payload.length }, timeout: timeoutMs },
+      { 
+        method: 'POST', 
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Content-Length': payload.length,
+          'Connection': 'close'
+        }, 
+        timeout: timeoutMs,
+        agent: new http.Agent({ keepAlive: false }),
+      },
       res => {
         const chunks: Buffer[] = [];
         res.on('data', d => chunks.push(d));
@@ -110,13 +119,42 @@ export async function checkAddNoteDryRun(): Promise<{ status: 'ok' | 'warn' | 'f
         ]
       }
     };
-    const res = await postJson<{ result?: boolean[]; error?: string }>('/', payload, 1500);
+    const res = await postJson<{ result?: boolean[]; error?: string }>('/', payload, 2500);
     if (Array.isArray(res?.result)) {
       const ok = res.result[0] === true || res.result[0] === false;
       return ok ? { status: 'ok', detail: 'canAddNotes reachable' } : { status: 'warn', detail: 'Unexpected response shape' };
     }
     return { status: 'fail', detail: res?.error ?? 'No result from canAddNotes' };
   } catch (e: any) {
-    return { status: 'fail', detail: `Dry-run failed: ${e?.message ?? e}` };
+    const msg = e?.message ?? String(e);
+    if (/ECONNRESET|EPIPE/i.test(msg)) {
+      await new Promise(r => setTimeout(r, 400));
+      try {
+        const payload = {
+          action: 'canAddNotes',
+          version: 6,
+          params: {
+            notes: [
+              {
+                deckName: '_health_check_do_not_create__',
+                modelName: 'Basic',
+                fields: { Front: 'health-check', Back: 'health-check' },
+                options: { allowDuplicate: true, duplicateScope: 'deck' },
+                tags: ['health-check'],
+              }
+            ]
+          }
+        };
+        const res2 = await postJson<{ result?: boolean[]; error?: string }>('/', payload, 2500);
+        if (Array.isArray(res2?.result)) {
+          const ok = res2.result[0] === true || res2.result[0] === false;
+          return ok ? { status: 'ok', detail: 'canAddNotes reachable (after retry)' } : { status: 'warn', detail: 'Unexpected response shape (after retry)' };
+        }
+        return { status: 'fail', detail: res2?.error ?? 'No result from canAddNotes (after retry)' };
+      } catch (e2: any) {
+        return { status: 'fail', detail: `Dry-run failed after retry: ${e2?.message ?? e2}` };
+      }
+    }
+    return { status: 'fail', detail: `Dry-run failed: ${msg}` };
   }
 }

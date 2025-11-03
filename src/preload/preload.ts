@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer} from "electron";
 import type { HealthCheckId, HealthCheckResult, HealthReport } from '../shared/health/types';
+import { startHealthPolling, stopHealthPolling } from "../main/health/runHealth";
 
 console.log('[preload] loaded');
 contextBridge.exposeInMainWorld('api', {
@@ -17,4 +18,11 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on(channel, handler);
     return () => ipcRenderer.removeListener(channel, handler);
   },
+
+  startHealthPolling: (intervalMs?: number) => 
+    ipcRenderer.invoke('health:polling:start', intervalMs),
+  stopHealthPolling: () => 
+    ipcRenderer.invoke('health:polling:stop'),
+  runMini: () => 
+    ipcRenderer.invoke('health:mini'),
 });

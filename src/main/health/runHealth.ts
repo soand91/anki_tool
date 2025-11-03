@@ -1,7 +1,7 @@
 import { BrowserWindow, ipcMain } from "electron";
 import { HEALTH_ORDER, HealthReport, HealthStatus, HealthCheckId, HealthCheckResult } from "../../shared/health/types";
 import { checkAnkiProcess, checkAnkiConnectHttp, checkAnkiConnectVersion, checkAddNoteDryRun } from "./detectors";
-import { pl } from "zod/v4/locales";
+import { sleep, jitter, friendly, isFresh, noteFailFastHit, breakerOpen, dlog } from './utils';
 
 type CheckFn = () => Promise<{ status: 'ok' | 'warn' | 'fail'; detail?: string }>;
 
@@ -21,18 +21,16 @@ const LABELS: Record<HealthCheckId, string> = {
 }
 
 let current: HealthReport = makeInitialReport();
+let refreshInFlight = false;
 let pollTimer: NodeJS.Timeout | null = null;
-function sleep(ms: number) { return new Promise(res => setTimeout(res, ms)); }
-
-function jitter(baseMs: number, pct = 0.2) {
-  const delta = baseMs * pct;
-  return Math.floor(baseMs + (Math.random() * 2 - 1) * delta);
-}
 
 export function startHealthPolling(intervalMs = 8000) {
   if (pollTimer) return;
+  dlog('poll:start', { intervalMs });
   const tick = async () => {
-    try { await runAllChecks(); } catch {}
+    try { await runAllChecks(); } catch (e) {
+      console.warn('[health:poll] runAllChecks failed:', friendly({ err: e }));
+    }
     pollTimer = setTimeout(tick, jitter(intervalMs));
   };
   pollTimer = setTimeout(tick, jitter(intervalMs));
@@ -40,6 +38,7 @@ export function startHealthPolling(intervalMs = 8000) {
 
 export function stopHealthPolling() {
   if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
+  dlog('poll:stop');
 }
 
 function makeInitialReport(): HealthReport {
@@ -78,9 +77,11 @@ function broadcast(channel: string, payload: unknown) {
   for (const w of wins) {
     try { w.webContents.send(channel, payload); } catch {}
   }
+  dlog('broadcast', channel, { to: wins.length, type: (payload as any)?.type, id: (payload as any)?.id });
 }
 
 export function getReport(): HealthReport {
+  dlog('getReport', { overall: current.overall });
   return current;
 }
 
@@ -94,13 +95,15 @@ export async function runCheck(id: HealthCheckId): Promise<HealthCheckResult> {
       id,
       label: (LABELS as any)[id] ?? id,
       status: 'fail',
+      detail: 'Unknown health check id',
       startedAt: started,
       finishedAt: finished,
       durationMs: 0,
     };
-    return result
+    return result;
   }
   const started = Date.now();
+  dlog('check:begin', { id });
   broadcast('health:update', { type: 'BEGIN_CHECK', id, startedAt: started });
 
   let status: 'ok' | 'warn' | 'fail' = 'fail';
@@ -111,12 +114,12 @@ export async function runCheck(id: HealthCheckId): Promise<HealthCheckResult> {
     detail = res.detail;
   } catch (e: any) {
     status = 'fail';
-    detail = e?.message ?? String(e);
+    detail = friendly({ err: e });
   }
   const finished = Date.now();
+  const durationMs = Math.max(0, finished - started);
   
   // update cached report
-  const entry = current.checks[id];
   current.checks[id] = {
     id, 
     label: LABELS[id],
@@ -124,7 +127,7 @@ export async function runCheck(id: HealthCheckId): Promise<HealthCheckResult> {
     detail,
     startedAt: started,
     finishedAt: finished,
-    durationMs: Math.max(0, finished - started),
+    durationMs, 
   };
   current.overall = computeOverall();
 
@@ -137,10 +140,12 @@ export async function runCheck(id: HealthCheckId): Promise<HealthCheckResult> {
     startedAt: started,
     finishedAt: finished
   });
+  dlog('check:end', { id, status, durationMs, detail: detail?.slice(0, 120) });
   return result
 }
 
 export async function runAllChecks(): Promise<HealthReport> {
+  dlog('runAll:start');
   // 1) Process
   const rProcess = await runCheck('anki.process');
   if (rProcess.status !== 'ok') {
@@ -152,34 +157,29 @@ export async function runAllChecks(): Promise<HealthReport> {
   // 2) Grace after process OK 
   await sleep(400);
   // 3) HTTP
-  const rHTTP = await runCheck('ankiconnect.http');
-  if (rHTTP.status !== 'ok') {
-    await skipCheck('ankiconnect.version', 'Skipped: Ankiconnect HTTP not reachable');
-    await skipCheck('ankiconnect.addNoteDryRun', 'Skipped: Ankiconnect HTTP not reachable');
+  const rHttp = await runCheck('ankiconnect.http');
+  if (rHttp.status !== 'ok') {
+    await skipCheck('ankiconnect.version', 'Skipped: Ankiconnect HTTP not reachable.');
+    await skipCheck('ankiconnect.addNoteDryRun', 'Skipped: Ankiconnect HTTP not reachable.');
+    dlog('runAll:shortcircuit', { at: 'http', status: rHttp.status });
     return current;
   }
   // 4) Version
-  const rVer = await runCheck('ankiconnect.version');
+  let rVer = await runCheck('ankiconnect.version');
   if (rVer.status === 'fail') {
-    await skipCheck('ankiconnect.addNoteDryRun', 'Skipped: Version check failed');
-    return current;
+    // warm-up retry
+    await sleep(400);
+    rVer = await runCheck('ankiconnect.version');
+    if (rVer.status === 'fail') {
+      await skipCheck('ankiconnect.addNoteDryRun', 'Skipped: Version check failed.');
+      dlog('runAll:shortcircuit', { at: 'version', status: rVer.status });
+      return current;
+    }
   }
   // 5) Dry run
   await runCheck('ankiconnect.addNoteDryRun');
+  dlog('runAll:end', { overall: current.overall });
   return current;
-}
-
-export function registerHealthIpc() {
-  ipcMain.handle('health:check', async (_e, id: HealthCheckId) => {
-    return runCheck(id);
-  });
-  ipcMain.handle('health:getReport', async () => {
-    return getReport();
-  });
-  ipcMain.handle('health:runAll', async () => {
-    await runAllChecks();
-    return getReport();
-  })
 }
 
 async function skipCheck(id: HealthCheckId, detail: string) {
@@ -197,4 +197,106 @@ async function skipCheck(id: HealthCheckId, detail: string) {
   };
   current.overall = computeOverall();
   broadcast('health:update', { type: 'END_CHECK', id, status: 'fail', detail, startedAt: started, finishedAt: finished });
+  dlog('check:skip', { id, reason: detail });
+}
+
+export async function runMiniChecks(): Promise<HealthReport> {
+  dlog('runMini:start');
+  const rProcess = await runCheck('anki.process');
+  if (rProcess.status !== 'ok') {
+    await skipCheck('ankiconnect.http', 'Skipped: Anki is not running.');
+    await skipCheck('ankiconnect.version', 'Skipped by mini run.');
+    await skipCheck('ankiconnect.addNoteDryRun', 'Skipped by mini run.');
+    dlog('runMini:shortcircuit', { at: 'process', status: rProcess.status });
+    return current;
+  }
+  await sleep(300);
+  const rHttp = await runCheck('ankiconnect.http');
+  if (rHttp.status !== 'ok') {
+    await skipCheck('ankiconnect.version', 'Skipped: HTTP not reachable (mini).');
+    await skipCheck('ankiconnect.addNoteDryRun', 'Skipped: HTTP not reachable (mini).');
+    dlog('runMini:shortcircuit', { at: 'http', status: rHttp.status });
+    return current;
+  }
+  await skipCheck('ankiconnect.version', 'Skipped by mini run.');
+  await skipCheck('ankiconnect.addNoteDryRun', 'Skipped by mini run.');
+  dlog('runMini:end', { overall: current.overall });
+  return current;
+}
+
+export async function ensureHealthyOrThrow(opts?: {
+  ttlMs?: number;
+  allowProceedIfStale?: boolean;
+  refreshIfStale?: boolean;
+}): Promise<void> {
+  const ttlMs = opts?.ttlMs ?? 10_000;
+  const allowProceedIfStale = opts?.allowProceedIfStale ?? true;
+  const refreshIfStale = opts?.refreshIfStale ?? true;
+
+  const now = Date.now();
+
+  dlog('gate:begin', { ttlMs, allowProceedIfStale, refreshIfStale });
+  // Circuit breaker: too many fail-fasts recently? back off.
+  if (breakerOpen(15_000, 3, now)) {
+    dlog('gate:breakerOpen');
+    throw new Error('Health temporarily unavailable. Please wait a few seconds and try again.');
+  }
+  // If known bad, fail fast (and count it)
+  if (current.overall === 'fail') {
+    noteFailFastHit(now);
+    // optional: kick a refresh once when failing to help recover
+    if (!refreshInFlight) {
+      refreshInFlight = true;
+      runAllChecks().catch(() => {}).finally(() => { refreshInFlight = false; });
+    }
+    dlog('gate:failFast');
+    throw new Error('Anki is not ready. Open Anki and enable AnkiConnect, then try again.');
+  }
+  // Healthy-ish but stale?
+  if (!isFresh(current, ttlMs, now)) {
+    if (refreshIfStale && !refreshInFlight) {
+      refreshInFlight = true;
+      runAllChecks().catch(() => {}).finally(() => { refreshInFlight = false; });
+      dlog('gate:staleRefresh:kicked');
+    }
+    if (!allowProceedIfStale) {
+      // block if you configured no-stale proceeds
+      dlog('gate:stale:block');
+      throw new Error('Checking Anki status… please try again in a moment.');
+    }
+    // proceed optimistically
+    dlog('gate:stale:proceed');
+  }
+  // Fresh & ok/warn -> proceed
+  dlog('gate:proceed', { overall: current.overall });
+}
+
+export function registerHealthIpc() {
+  dlog('ipc:register');
+  ipcMain.handle('health:check', async (_e, id: HealthCheckId) => {
+    dlog('ipc:invoke health:check', { id });
+    return runCheck(id);
+  });
+  ipcMain.handle('health:getReport', async () => {
+    dlog('ipc:invoke health:getReport');
+    return getReport();
+  });
+  ipcMain.handle('health:runAll', async () => {
+    dlog('ipc:invoke health:runAll');
+    await runAllChecks();
+    return getReport();
+  });
+  ipcMain.handle('health:polling:start', async(_e, intervalMs?: number) => {
+    dlog('ipc:invoke health:polling:start', { intervalMs });
+    startHealthPolling(typeof intervalMs === 'number' ? intervalMs: 8000);
+  });
+  ipcMain.handle('health:polling:stop', async () => {
+    dlog('ipc:invoke health:polling:stop');
+    stopHealthPolling();
+  });
+  ipcMain.handle('health:mini', async () => {
+    dlog('ipc:invoke health:mini');
+    await runMiniChecks();
+    return getReport();
+  });
 }
