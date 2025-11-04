@@ -37,7 +37,7 @@ async function postJson<T>(path: string, body: any, timeoutMs = 1500): Promise<T
   });
 }
 
-export async function checkAnkiProcess(): Promise<{ status: 'ok' | 'fail'; detail?: string }> {
+export async function checkAnkiProcess(): Promise<{ status: 'ok' | 'error'; detail?: string }> {
   const platform = process.platform;
   try { 
     let cmd: string;
@@ -59,7 +59,7 @@ export async function checkAnkiProcess(): Promise<{ status: 'ok' | 'fail'; detai
         return { status: 'ok', detail: 'Anki process detected' };
       }
       if (/^INFO:/i.test(out) || out.length === 0) {
-        return { status: 'fail', detail: 'Anki process not found' };      
+        return { status: 'error', detail: 'Anki process not found' };      
       }
       // Fallback: if any non-empty CSV comes back, treat as found
       return { status: 'ok', detail: 'Anki process detected' };
@@ -68,40 +68,40 @@ export async function checkAnkiProcess(): Promise<{ status: 'ok' | 'fail'; detai
     const found = typeof stdout === 'string' && stdout.trim().length > 0;
     return found
       ? { status: 'ok', detail: 'Anki process detected' }
-      : { status: 'fail', detail: 'Anki process not found' };
+      : { status: 'error', detail: 'Anki process not found' };
   } catch (e: any) {
     // Treat common 'not found' cases as a clea miss; otherwise surface errors
     // pgrep returns non-zero exit when nothing is found; treat as not running 
     const msg = (e?.stderr || e?.stdout || e?.message || String(e)).toString();
     if (/INFO:\s*No tasks/i.test(msg) || /exit code 1/i.test(msg) || /no matching/i.test(msg)) {
-      return { status: 'fail', detail: 'Anki process not found' };
+      return { status: 'error', detail: 'Anki process not found' };
     }
-    return { status: 'fail', detail: `Process check error: ${msg}` };
+    return { status: 'error', detail: `Process check error: ${msg}` };
   }
 }
 
-export async function checkAnkiConnectHttp(): Promise<{ status: 'ok' | 'fail'; detail?: string }> {
+export async function checkAnkiConnectHttp(): Promise<{ status: 'ok' | 'error'; detail?: string }> {
   try {
     // a 404 on GET is fine; we only need TCP accept. Use POST to be faithful.
     await postJson('/', { action: 'version', version: 6 }, 1000);
     return { status: 'ok', detail: 'AnkiConnect found & enabled' };
   } catch (e: any) {
-    return { status: 'fail', detail: `Cannot reach AnkiConnect: ${e?.message ?? e}` };
+    return { status: 'error', detail: `Cannot reach AnkiConnect: ${e?.message ?? e}` };
   }
 }
 
-export async function checkAnkiConnectVersion(minVersion = 6): Promise<{ status: 'ok' | 'warn' | 'fail'; detail?: string }> {
+export async function checkAnkiConnectVersion(minVersion = 6): Promise<{ status: 'ok' | 'warning' | 'error'; detail?: string }> {
   try {
     const res = await postJson<{ result?: number; error?: string }>('/', { action: 'version', version: minVersion }, 1200);
     if (res?.result && res.result >= minVersion) return { status: 'ok', detail: `AnkiConnect Version ${res.result}` };
-    if (res?.result) return { status: 'warn', detail: `version ${res.result} < required ${minVersion}` };
-    return { status: 'fail', detail: res?.error ?? 'No version in response' };
+    if (res?.result) return { status: 'warning', detail: `version ${res.result} < required ${minVersion}` };
+    return { status: 'error', detail: res?.error ?? 'No version in response' };
   } catch (e: any) {
-    return { status: 'fail', detail: `Version check failed: ${e?.message ?? e}` };
+    return { status: 'error', detail: `Version check errored: ${e?.message ?? e}` };
   }
 }
 
-export async function checkAddNoteDryRun(): Promise<{ status: 'ok' | 'warn' | 'fail'; detail?: string }> {
+export async function checkAddNoteDryRun(): Promise<{ status: 'ok' | 'warning' | 'error'; detail?: string }> {
   try {
     // use "canAddNotes" (or harmless invalid deck) to avoid side effects
     const payload = {
@@ -122,9 +122,9 @@ export async function checkAddNoteDryRun(): Promise<{ status: 'ok' | 'warn' | 'f
     const res = await postJson<{ result?: boolean[]; error?: string }>('/', payload, 2500);
     if (Array.isArray(res?.result)) {
       const ok = res.result[0] === true || res.result[0] === false;
-      return ok ? { status: 'ok', detail: 'canAddNotes reachable' } : { status: 'warn', detail: 'Unexpected response shape' };
+      return ok ? { status: 'ok', detail: 'canAddNotes reachable' } : { status: 'warning', detail: 'Unexpected response shape' };
     }
-    return { status: 'fail', detail: res?.error ?? 'No result from canAddNotes' };
+    return { status: 'error', detail: res?.error ?? 'No result from canAddNotes' };
   } catch (e: any) {
     const msg = e?.message ?? String(e);
     if (/ECONNRESET|EPIPE/i.test(msg)) {
@@ -148,13 +148,13 @@ export async function checkAddNoteDryRun(): Promise<{ status: 'ok' | 'warn' | 'f
         const res2 = await postJson<{ result?: boolean[]; error?: string }>('/', payload, 2500);
         if (Array.isArray(res2?.result)) {
           const ok = res2.result[0] === true || res2.result[0] === false;
-          return ok ? { status: 'ok', detail: 'canAddNotes reachable (after retry)' } : { status: 'warn', detail: 'Unexpected response shape (after retry)' };
+          return ok ? { status: 'ok', detail: 'canAddNotes reachable (after retry)' } : { status: 'warning', detail: 'Unexpected response shape (after retry)' };
         }
-        return { status: 'fail', detail: res2?.error ?? 'No result from canAddNotes (after retry)' };
+        return { status: 'error', detail: res2?.error ?? 'No result from canAddNotes (after retry)' };
       } catch (e2: any) {
-        return { status: 'fail', detail: `Dry-run failed after retry: ${e2?.message ?? e2}` };
+        return { status: 'error', detail: `Dry-run errored after retry: ${e2?.message ?? e2}` };
       }
     }
-    return { status: 'fail', detail: `Dry-run failed: ${msg}` };
+    return { status: 'error', detail: `Dry-run errored: ${msg}` };
   }
 }

@@ -3,7 +3,7 @@ import { HEALTH_ORDER, HealthReport, HealthStatus, HealthCheckId, HealthCheckRes
 import { checkAnkiProcess, checkAnkiConnectHttp, checkAnkiConnectVersion, checkAddNoteDryRun } from "./detectors";
 import { sleep, jitter, friendly, isFresh, noteFailFastHit, breakerOpen, dlog } from './utils';
 
-type CheckFn = () => Promise<{ status: 'ok' | 'warn' | 'fail'; detail?: string }>;
+type CheckFn = () => Promise<{ status: 'ok' | 'warning' | 'error'; detail?: string }>;
 
 const map: Record<string, CheckFn> = {
   'anki.process': checkAnkiProcess,
@@ -61,15 +61,20 @@ function computeOverall(): HealthStatus {
   const statuses = Object.values(current.checks).map(c => c.status);
 
   const total = statuses.length;
-  const fails = statuses.filter(s => s === 'fail').length;
-  const warns = statuses.filter(s => s === 'warn').length;
+  const fails = statuses.filter(s => s === 'error').length;
+  const warns = statuses.filter(s => s === 'warning').length;
   const checking = statuses.includes('checking');
   if (checking) return 'checking';
 
   if (fails === 0 && warns === 0) return 'ok';
-  if (fails === total) return 'fail';
+  if (fails === total) return 'error';
 
-  return 'warn'
+  return 'warning'
+}
+
+function broadcastWithOverall(payload: Record<string, unknown>) {
+  current.overall = computeOverall();
+  broadcast('health:update', { ...payload, overall: current.overall });
 }
 
 function broadcast(channel: string, payload: unknown) {
@@ -94,7 +99,7 @@ export async function runCheck(id: HealthCheckId): Promise<HealthCheckResult> {
     const result: HealthCheckResult = {
       id,
       label: (LABELS as any)[id] ?? id,
-      status: 'fail',
+      status: 'warning',
       detail: 'Unknown health check id',
       startedAt: started,
       finishedAt: finished,
@@ -104,16 +109,24 @@ export async function runCheck(id: HealthCheckId): Promise<HealthCheckResult> {
   }
   const started = Date.now();
   dlog('check:begin', { id });
-  broadcast('health:update', { type: 'BEGIN_CHECK', id, startedAt: started });
+  current.checks[id] = {
+    ...current.checks[id],
+    status: 'checking',
+    detail: undefined,
+    startedAt: started,
+    finishedAt: undefined,
+    durationMs: undefined,
+  };
+  broadcastWithOverall({ type: 'BEGIN_CHECK', id, startedAt: started });
 
-  let status: 'ok' | 'warn' | 'fail' = 'fail';
+  let status: 'ok' | 'warning' | 'error' = 'error';
   let detail: string | undefined;
   try {
     const res = await fn();
     status = res.status;
     detail = res.detail;
   } catch (e: any) {
-    status = 'fail';
+    status = 'error';
     detail = friendly({ err: e });
   }
   const finished = Date.now();
@@ -129,10 +142,9 @@ export async function runCheck(id: HealthCheckId): Promise<HealthCheckResult> {
     finishedAt: finished,
     durationMs, 
   };
-  current.overall = computeOverall();
 
   const result: HealthCheckResult = current.checks[id];
-  broadcast('health:update', {
+  broadcastWithOverall({
     type: 'END_CHECK',
     id, 
     status,
@@ -166,11 +178,11 @@ export async function runAllChecks(): Promise<HealthReport> {
   }
   // 4) Version
   let rVer = await runCheck('ankiconnect.version');
-  if (rVer.status === 'fail') {
+  if (rVer.status === 'error') {
     // warm-up retry
     await sleep(400);
     rVer = await runCheck('ankiconnect.version');
-    if (rVer.status === 'fail') {
+    if (rVer.status === 'error') {
       await skipCheck('ankiconnect.addNoteDryRun', 'Skipped: Version check failed.');
       dlog('runAll:shortcircuit', { at: 'version', status: rVer.status });
       return current;
@@ -185,18 +197,33 @@ export async function runAllChecks(): Promise<HealthReport> {
 async function skipCheck(id: HealthCheckId, detail: string) {
   const started = Date.now();
   broadcast('health:update', { type: 'BEGIN_CHECK', id, startedAt: started });
+  current.checks[id] = {
+    ...current.checks[id],
+    status: 'checking',
+    detail: undefined,
+    startedAt: started,
+    finishedAt: undefined,
+    durationMs: undefined,
+  }
+  broadcastWithOverall({ type: 'BEGIN_CHECK', id, startedAt: started });
   const finished = Date.now();
   current.checks[id] = {
     id, 
     label: LABELS[id],
-    status: 'fail',
+    status: 'warning',
     detail,
     startedAt: started,
     finishedAt: finished,
     durationMs: Math.max(0, finished - started),
   };
-  current.overall = computeOverall();
-  broadcast('health:update', { type: 'END_CHECK', id, status: 'fail', detail, startedAt: started, finishedAt: finished });
+  broadcastWithOverall({
+    type: 'END_CHECK',
+    id, 
+    status: 'warning',
+    detail, 
+    startedAt: started,
+    finishedAt: finished,
+  });
   dlog('check:skip', { id, reason: detail });
 }
 
@@ -242,7 +269,7 @@ export async function ensureHealthyOrThrow(opts?: {
     throw new Error('Health temporarily unavailable. Please wait a few seconds and try again.');
   }
   // If known bad, fail fast (and count it)
-  if (current.overall === 'fail') {
+  if (current.overall === 'error') {
     noteFailFastHit(now);
     // optional: kick a refresh once when failing to help recover
     if (!refreshInFlight) {

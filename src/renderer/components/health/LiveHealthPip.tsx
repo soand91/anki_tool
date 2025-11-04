@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import type { HealthReport, HealthCheckId, HealthStatus } from "../../shared/health/types";
+import type { HealthReport, HealthCheckId, HealthStatus } from "../../../shared/health/types";
 
 function statusToClasses(s: HealthStatus) {
   if (s === "ok") return "bg-emerald-500";
-  if (s === "warn") return "bg-amber-400";
-  if (s === "fail") return "bg-rose-500";
+  if (s === "warning") return "bg-amber-400";
+  if (s === "error") return "bg-rose-500";
   if (s === "checking") return "bg-yellow-300 animate-pulse";
   return "bg-zinc-400";
 }
@@ -69,7 +69,7 @@ export default function LiveHealthPip() {
     if (!report) return "Health: unknown";
     const lines = Object.values(report.checks).map((c) => {
       const s = c.status.toUpperCase();
-      const d = c.detail ? ` – ${c.detail}` : "";
+      const d = c.detail ? ` ${c.detail}` : "";
       return `${c.label}: ${s}${d}`;
     });
     return lines.join("\n");
@@ -86,13 +86,19 @@ function computeOverall(rep: HealthReport): HealthStatus {
   const statuses = Object.values(rep.checks).map(c => c.status);
 
   const total = statuses.length;
-  const fails = statuses.filter(s => s === 'fail').length;
-  const warns = statuses.filter(s => s === 'warn').length;
+  const fails = statuses.filter(s => s === 'error').length;
+  const warns = statuses.filter(s => s === 'warning').length;
   const checking = statuses.includes('checking');
   if (checking) return 'checking';
 
   if (fails === 0 && warns === 0) return 'ok';
-  if (fails === total) return 'fail';
+  if (fails === total) return 'error';
 
-  return 'warn'
+  return 'warning'
+  // const hasChecking = statuses.includes('checking');
+  // if (hasChecking) return 'checking';
+  // if (statuses.includes('error')) return 'error';
+  // if (statuses.includes('warning')) return 'warning';
+  // if (statuses.length === 0) return 'unknown';
+  // return 'ok'
 }

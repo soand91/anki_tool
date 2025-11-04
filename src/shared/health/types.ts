@@ -4,7 +4,9 @@ export type HealthCheckId =
   | "ankiconnect.version"
   | "ankiconnect.addNoteDryRun";
 
-export type HealthStatus = "unknown" | "checking" | "ok" | "warn" | "fail";
+export type HealthStatus = "checking" | "ok" | "warning" | "error" | "unknown";
+
+export type HealthCheckRow = { id: string; label: string; status: HealthStatus; detail?: string };
 
 export interface HealthCheckResult {
   id: HealthCheckId;

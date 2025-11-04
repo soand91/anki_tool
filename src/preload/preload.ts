@@ -1,6 +1,5 @@
 import { contextBridge, ipcRenderer} from "electron";
 import type { HealthCheckId, HealthCheckResult, HealthReport } from '../shared/health/types';
-import { startHealthPolling, stopHealthPolling } from "../main/health/runHealth";
 
 console.log('[preload] loaded');
 contextBridge.exposeInMainWorld('api', {
@@ -11,7 +10,8 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.invoke('health:check', id),
   getHealthReport: (): Promise<HealthReport> => 
     ipcRenderer.invoke('health:getReport'),
-  runAll: () => ipcRenderer.invoke('health:runAll'),
+  runAll: (): Promise<HealthReport> =>
+    ipcRenderer.invoke('health:runAll'),
   onUpdate: <T = unknown>(cb: (msg: T) => void) => {
     const channel = 'health:update';
     const handler = (_: Electron.IpcRendererEvent, msg: T) => cb(msg);

@@ -5,18 +5,20 @@ import type { HealthCheckId, HealthCheckResult, HealthReport } from '../shared/h
 
 declare global {
   interface Window {
-    api: {
-      ping: () => string;
-      deckNames: () => Promise<string[]>;
-
-      // Health bridge
-      healthCheck: (id: HealthCheckId) => Promise<HealthCheckResult>;
-      getHealthReport: () => Promise<HealthReport>;
-      runAll: () => Promise<unknown>;
-      onUpdate: <T = unknown>(cb: (msg: T) => void) => () => void; // subscribe -> unsubscribe
-      startHealthPolling: (intervalMs?: number) => Promise<void>;
-      stopHealthPolling: () => Promise<void>;
-      runMini: () => Promise<HealthReport>;
-    };
+    api: ApiBridge;
   }
+}
+
+interface ApiBridge {
+  runAll(): Promise<HealthReport>;
+  onHealthUpdate<T = unknown>(cb: (evt: T) => void): () => void;
+  startHealthPolling(intervalMs?: number): Promise<void>;
+  stopHealthPolling(): Promise<void>;
+
+  getHealthReport(): Promise<import('../shared/health/types').HealthReport>;
+  onUpdate<T = unknown>(cb: (evt: T) => void): () => void;
+  runMini(): Promise<HealthReport>;
+
+  decknames?(): Promise<string[]>;
+  ping?(): Promise<{ ok: boolean }>;
 }

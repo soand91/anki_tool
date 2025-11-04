@@ -25,8 +25,8 @@ export function emptyReport(): HealthReport {
 
 function calcOverall(checks: HealthReport["checks"]): HealthStatus {
   const statuses = Object.values(checks).map(c => c.status);
-  if (statuses.includes("fail")) return "fail";
-  if (statuses.includes("warn")) return "warn";
+  if (statuses.includes("error")) return "error";
+  if (statuses.includes("warning")) return "warning";
   if (statuses.every(s => s === "ok")) return "ok";
   if (statuses.includes("checking")) return "checking";
   return "unknown"
@@ -60,7 +60,7 @@ export function healthReducer(state: HealthReport, action: HealthAction): Health
     const durationMs = c.startedAt ? Math.max(0, finishedAt - c.startedAt) : undefined;
     // normalize illegal statuses just in case
     const nextStatus: HealthStatus = (action.status === 'unknown' || action.status === 'checking')
-      ? 'fail' 
+      ? 'error' 
       : action.status;
     const updated = {
       ...state.checks,
@@ -100,13 +100,13 @@ export function selectIsFresh(state: HealthReport, opts?: { ttlMs?: number; now?
 }
 
 export function selectShouldFailFast(state: HealthReport): boolean {
-  return state.overall === 'fail';
+  return state.overall === 'error';
 } 
 
 export function selectCanProceedOptimistic(
   state: HealthReport,
   opts?: { ttlMs?: number, now?: number }
 ): boolean {
-  const healthyish = state.overall === 'ok' || state.overall === 'warn';
+  const healthyish = state.overall === 'ok' || state.overall === 'warning';
   return healthyish && selectIsFresh(state, opts);
 }
