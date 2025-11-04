@@ -25,4 +25,9 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.invoke('health:polling:stop'),
   runMini: () => 
     ipcRenderer.invoke('health:mini'),
+
+  addDeck: () => 
+    ipcRenderer.invoke('anki:addDeck'),
+  getDecks: () => 
+    ipcRenderer.invoke('anki:getDecks'),
 });

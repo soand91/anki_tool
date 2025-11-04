@@ -5,10 +5,16 @@ type Props = {
   isOpen: boolean;
   onClose: () => void;
   defaultLive?: boolean;
+  onLivePrefChange?: (live: boolean) => void;
 };
 
-export default function HealthModal({ isOpen, onClose, defaultLive = false }: Props) {
+export default function HealthModal({ isOpen, onClose, defaultLive = false, onLivePrefChange }: Props) {
   const [live, setLive] = useState<boolean>(defaultLive);
+  useEffect(() => { setLive(defaultLive); }, [defaultLive]);
+  const onToggleLive = (next: boolean) => {
+    setLive(next);
+    onLivePrefChange?.(next); // persist preference
+  }
   const [snapshot, setSnapshot] = useState<HealthReport | null>(null);
   const [asOf, setAsOf] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
@@ -28,18 +34,17 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false }: Pr
           // kick an immediate pull so UI isn't empty while waiting for the first push
           const initial = await window.api?.getHealthReport();
           setLiveReport(initial);
+        } catch {}
+        try {
           // start polling & subscribe to pushes
           await window.api?.startHealthPolling(8000);
-          unsub = window.api?.onUpdate((msg: any) => {
-            if (msg?.type === 'END_CHECK' || msg?.type === 'BEGIN_CHECK') {
-              window.api?.getHealthReport().then(setLiveReport).catch(() => {});
-            }
-          });
-        } catch (e: any) {
-          setErr(e?.message ?? String(e));
-        }
+        } catch {}
+        unsub = window.api?.onUpdate((msg: any) => {
+          if (msg?.type === 'END_CHECK' || msg?.type === 'BEGIN_CHECK') {
+            window.api?.getHealthReport().then(setLiveReport).catch(() => {});
+          }
+        });
       })();
-
       return () => {
         unsub?.();
         window.api.stopHealthPolling().catch(() => {});
@@ -51,8 +56,8 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false }: Pr
       (async () => {
         try {
           // do not keep polling in snapshot mode
-          await window.api?.stopHealthPolling();
-          const rep = await window.api?.getHealthReport();
+          await window.api?.stopHealthPolling().catch(() => {});
+          const rep = await window.api?.runAll();
           setSnapshot(rep);
           setAsOf(Date.now());
         } catch (e: any) {
@@ -61,7 +66,6 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false }: Pr
           setLoading(false);
         }
       })();
-
       return () => {
         // no-op on cleanup; caller may decide to start polling globally elsewhere
       };
@@ -135,7 +139,7 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false }: Pr
                 type="checkbox"
                 className="peer sr-only"
                 checked={live}
-                onChange={(e) => setLive(e.target.checked)}
+                onChange={(e) => onToggleLive(e.target.checked)}
               />
               <span className="block h-5 w-9 rounded-full bg-zinc-300 peer-checked:bg-emerald-500 relative transition-colors">
                 <span className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white transition-transform peer-checked:translate-x-4" />
@@ -165,31 +169,37 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false }: Pr
           ) : (
             <ul className="space-y-2">
               {rows.map((r) => (
-                <li key={r.id} className="rounded-lg border border-zinc-200 p-2">
-                  {/* top row (label) */}
-                  <div className="flex items-start justify-between">
+                <li key={r.id} className="border-b border-zinc-300 p-2 last:border-b-0">
+                  {/* top row: label left, status pill right */}
+                  <div className="flex items-center justify-between gap-3">
                     {/* status name/label */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
                       <StatusDot status={r.status} />
-                      <div className="font-medium">{r.label}</div>
-                    </div>
-                    <div className="mt-2 grid grid-cols-3 gap-3 text-xs text-zinc-500">
-                      <div>Started: {r.startedAt ? formatTime(r.startedAt) : '—'}</div>
-                      <div>Finished: {r.finishedAt ? formatTime(r.finishedAt) : '—'}</div>
-                      <div>Duration: {r.durationMs != null ? `${r.durationMs} ms` : '—'}</div>
+                      <div className="truncate font-medium">{r.label}</div>
                     </div>
                     {/* status pill */}
                     <div className={`rounded-full border px-2 py-0.5 text-xs ${statusToClasses(r.status)}`}>
                       {r.status.toUpperCase()}
                     </div>
                   </div>
-                  {/* second row (detail) */}
-                  <div className="flex items-start justify-between gap-3">
-                    {r.detail && (
-                      <p className="mt-1 text-sm text-zinc-600 whitespace-pre-wrap">
+                  {/* second row: detail (left, clamped) · meta (right, nowrap) */}
+                  <div className="mt-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                    {r.detail ? (
+                      <p 
+                        className={[
+                          'min-w-0 flex-1 text-sm text-zinc-600 [overflow-wrap:anywhere]',
+                          'line-clamp-2', 
+                        ].join(' ')}
+                        title={r.detail}
+                      >
                         {r.detail}
                       </p>
+                    ) : (
+                      <p className="min-w-0 flex-1 text-sm text-zinc-500">No details.</p>
                     )}
+                    <div className="shrink-0 whitespace-nowrap text-xs text-zinc-500 [font-variant-numeric:tabular-nums]">
+                      {formatMeta(r.startedAt, r.finishedAt, r.durationMs, r.status)}
+                    </div>
                   </div>
                 </li>
               ))}
@@ -254,4 +264,17 @@ function StatusDot({ status }: { status: HealthStatus }) {
 function formatTime(ts: number) {
   const d = new Date(ts);
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function formatMeta(
+  startedAt?: number,
+  finishedAt?: number,
+  durationMs?: number,
+  status?: HealthStatus
+) {
+  if (status === 'checking') return 'Running…';
+  const start = startedAt ? formatTime(startedAt) : '—';
+  const end = finishedAt ? formatTime(finishedAt) : '—';
+  const dur = durationMs != null ? `${durationMs} ms` : '—';
+  return `${start} → ${end} • ${dur}`;
 }

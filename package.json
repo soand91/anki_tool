@@ -27,6 +27,7 @@
   "type": "commonjs",
   "devDependencies": {
     "@tailwindcss/cli": "^4.1.16",
+    "@tailwindcss/line-clamp": "^0.4.4",
     "@tailwindcss/postcss": "^4.1.16",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.9.2",

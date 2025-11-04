@@ -12,9 +12,14 @@ type EndCheckEvt = {
 type IncrementalEvt = BeginCheckEvt | EndCheckEvt;
 
 export function useHealthChecks() {
+  const LIVE_PREF_KEY = 'healthModalLivePref';
+  const readLivePref = () => sessionStorage.getItem(LIVE_PREF_KEY) === '1';
+  const writelivePref = (v: boolean) => sessionStorage.setItem(LIVE_PREF_KEY, v ? '1' : '0');
+
   const [report, setReport] = useState<HealthReport | null>(null);
   const overall = useMemo<HealthStatus>(() => report?.overall ?? 'unknown', [report]);
   const [showHealthModal, setShowHealthModal] = useState(false);
+  const [modalDefaultLive, setModalDefaultLive] = useState(false);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [finishedAt, setFinishedAt] = useState<number | null>(null);
 
@@ -23,8 +28,14 @@ export function useHealthChecks() {
     const key = 'healthShownOnce';
     if (!sessionStorage.getItem(key)) {
       setShowHealthModal(true);
+      setModalDefaultLive(true);
       sessionStorage.setItem(key, '1');
     }
+  }, []);
+
+  const setLivePref = useCallback((v: boolean) => {
+    writelivePref(v);
+    setModalDefaultLive(v);
   }, []);
 
   // subscribe to health stream
@@ -76,9 +87,11 @@ export function useHealthChecks() {
   }, []);
 
   const runAllChecks = useCallback(async () => {
+    setModalDefaultLive(readLivePref());
     setShowHealthModal(true);
     setStartedAt(Date.now());
     setFinishedAt(null);
+    // optimistic UI: mark as checking
     setReport((prev) => {
       if (!prev) return prev;
       const next = structuredClone(prev);
@@ -90,9 +103,11 @@ export function useHealthChecks() {
       return next;
     });
     try {
-      await window.api?.runAll?.();
-    } catch {
-      // surface a generic failure row so the user sees *something*
+      const rep = await window.api?.runAll?.();
+      setReport(rep);
+      setFinishedAt(Date.now());
+    } catch (e) {
+      // surface an error snapshot instead of sticking on 'checking'
       setReport((prev) => {
         if (!prev) return prev;
         const next = structuredClone(prev);
@@ -130,6 +145,8 @@ export function useHealthChecks() {
     finishedAt,
     showHealthModal,
     setShowHealthModal,
+    modalDefaultLive,
+    setLivePref,
     runAllChecks,
   };
 }

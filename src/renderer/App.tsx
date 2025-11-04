@@ -22,6 +22,8 @@ export function App() {
     finishedAt,
     showHealthModal,
     setShowHealthModal,
+    modalDefaultLive,
+    setLivePref,
     runAllChecks
   } = useHealthChecks()
 
@@ -59,7 +61,9 @@ export function App() {
       >
         <div className='flex-1 flex flex-col'>
           <div className='flex items-center justify-between px-4 py-2 border-b border-zinc-200'>
-            <div className='font-semibold'>Left Content</div>
+            <div className='font-semibold'>Decks</div>
+            <button onClick={window.api.addDeck}> + </button>
+            <button onClick={window.api.deckNames}>Refresh</button>
           </div>
           <div className='flex-1 p-4 overflow-auto text-sm text-zinc-600'>
             Left panel content…
@@ -114,7 +118,8 @@ export function App() {
         <HealthModal
           isOpen={showHealthModal}
           onClose={() => setShowHealthModal(false)}
-          defaultLive={false} // snapshot mode by default
+          defaultLive={modalDefaultLive} // snapshot mode by default
+          onLivePrefChange={setLivePref} // persist user toglle
         />
       )}
            

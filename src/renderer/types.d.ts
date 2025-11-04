@@ -19,6 +19,9 @@ interface ApiBridge {
   onUpdate<T = unknown>(cb: (evt: T) => void): () => void;
   runMini(): Promise<HealthReport>;
 
-  decknames?(): Promise<string[]>;
+  addDeck(): Promise<void>;
+  getDecks(): Promise<string[]>;
+
+  deckNames?(): Promise<string[]>;
   ping?(): Promise<{ ok: boolean }>;
 }
