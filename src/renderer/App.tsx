@@ -35,7 +35,8 @@ export function App() {
     snapThresholdPx: snapThreshold,
     isResizing,
     initResizeLeft,
-    initResizeTopRight
+    initResizeTopRight,
+    isSnapped,
   } = useResizablePanels({
     defaultSizes: { leftPanel: 40, topRightPanel: 50 },
     snapThresholdPx: 10
@@ -56,14 +57,14 @@ export function App() {
       {/* LEFT PANEL */}
       <div
         ref={leftRef}
-        className='h-full overflow-hidden relative flex'
+        className='h-full overflow-hidden relative flex flex-none shrink-0'
         style={{ width: `${sizes.leftPanel}%` }}
       >
         <div className='flex-1 flex flex-col'>
           <div className='flex items-center justify-between px-4 py-2 border-b border-zinc-200'>
             <div className='font-semibold'>Decks</div>
             <button onClick={window.api.addDeck}> + </button>
-            <button onClick={window.api.deckNames}>Refresh</button>
+            <button onClick={window.api.getDecks}>Refresh</button>
           </div>
           <div className='flex-1 p-4 overflow-auto text-sm text-zinc-600'>
             Left panel content…
@@ -75,12 +76,12 @@ export function App() {
       <div
         className={`resize-handle horizontal ${
           isResizing === 'left' ? 'active' : ''
-        }`}
+        } ${isSnapped.left ? 'snapped' : ''}`}
         onMouseDown={initResizeLeft}
       />
 
       {/* RIGHT PANEL */}
-      <div className='flex flex-1 flex-col overflow-hidden'>
+      <div className='flex flex-auto min-w-0 flex-col overflow-hidden'>
         {/* TOP-RIGHT */}
         <div className='overflow-hidden' style={{ height: `${sizes.topRightPanel}%` }}>
           <div className='flex items-center justify-between px-4 py-2 border-b border-zinc-200'>
@@ -98,7 +99,7 @@ export function App() {
         <div
           className={`resize-handle vertical ${
             isResizing === 'topRight' ? 'active' : ''
-          }`}
+          } ${isSnapped.topRight ? 'snapped' : ''}`}
           onMouseDown={initResizeTopRight}
         />
 
@@ -147,12 +148,17 @@ export function App() {
           background-color: #9ca3af;
           border-radius: 9999px;
           opacity: 0.8;
+          transition: background-color 0.15s ease;
+        }
+        .resize-handle.active.snapped::after {
+          background-color: #3b82f6
         }
         .resize-handle.horizontal::after { width: 2px; height: 60%; }
         .resize-handle.vertical::after { height: 2px; width: 60%; }
         body.resizing .resize-handle.horizontal { cursor: col-resize; user-select: none; }
         body.resizing .resize-handle.vertical { cursor: row-resize; user-select: none; }
-        body.resizing * { pointer-events: none; }
+        body.resizing { user-select: none; }
+        body.resizing > :not(.resize-handle) { pointer-events: none; }
         body.resizing .resize-handle { pointer-events: auto !important; }
       `}</style>
     </div>

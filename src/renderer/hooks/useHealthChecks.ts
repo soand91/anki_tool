@@ -89,33 +89,6 @@ export function useHealthChecks() {
   const runAllChecks = useCallback(async () => {
     setModalDefaultLive(readLivePref());
     setShowHealthModal(true);
-    setStartedAt(Date.now());
-    setFinishedAt(null);
-    // optimistic UI: mark as checking
-    setReport((prev) => {
-      if (!prev) return prev;
-      const next = structuredClone(prev);
-      for (const k of Object.keys(next.checks)) {
-        next.checks[k as HealthCheckId].status = 'checking';
-        next.checks[k as HealthCheckId].detail = undefined;
-      }
-      next.overall = 'checking';
-      return next;
-    });
-    try {
-      const rep = await window.api?.runAll?.();
-      setReport(rep);
-      setFinishedAt(Date.now());
-    } catch (e) {
-      // surface an error snapshot instead of sticking on 'checking'
-      setReport((prev) => {
-        if (!prev) return prev;
-        const next = structuredClone(prev);
-        next.overall = 'error';
-        return next;
-      })
-      setFinishedAt(Date.now());
-    }
   }, []);
 
   const rows = useMemo(() => {

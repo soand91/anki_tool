@@ -1,7 +1,7 @@
 import { ipcMain } from "electron";
 import { ankiCall } from "../anki";
 import { ensureHealthyOrThrow } from "../health/runHealth";
-import { dlog } from "../health/utils";
+import { dlog } from "./utils";
 
 export function registerDeckIpc() {
   dlog('ipc:register');

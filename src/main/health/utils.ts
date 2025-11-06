@@ -9,15 +9,6 @@ export function jitter(baseMs: number, pct = 0.2) {
   return Math.floor(baseMs + (Math.random() * 2 - 1) * delta);
 }
 
-// minimal, user-friendly error string normalizer (transport-focused)
-export function friendly({ err }: { err: unknown; }): string {
-  const msg = String((err as any)?.message ?? err ?? "");
-  if (/ECONNREFUSED/i.test(msg)) return "Can't reach AnkiConnect (127.0.0.1:8765). Is Anki open?";
-  if (/ECONNRESET|EPIPE/i.test(msg)) return "Connection reset by AnkiConnect. Please try again.";
-  if (/ETIMEDOUT|timeout/i.test(msg)) return "Timed out waiting for AnkiConnect.";
-  return msg || "Unexpected error.";
-}
-
 // logger
 export function dlog(...args: any[]) {
   console.debug('[health]', ...args);

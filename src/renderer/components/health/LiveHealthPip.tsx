@@ -11,58 +11,94 @@ function statusToClasses(s: HealthStatus) {
 
 export default function LiveHealthPip() {
   const [report, setReport] = useState<HealthReport | null>(null);
-
   useEffect(() => {
     let unsub: (() => void) | undefined;
+    let cancelled = false;
+    let t: ReturnType<typeof setTimeout> | null = null;
 
-      // seed from cached report
+    const scheduleFetch = () => {
+      if (t) return;
+      t = setTimeout(() => {
+        t = null;
+        window.api.getHealthReport()
+          .then(r => { if (!cancelled) setReport(r); })
+          .catch(() => {});
+      }, 120);
+    };
     (async () => {
       try {
-        const snap = await window.api.getHealthReport();
-        setReport(snap);
-      } catch {
-        // ignore; will update on future pushes
-      }
-    })();
-
-    // subscribe to push updates
-    unsub = window.api.onUpdate<any>((msg) => {
-      // Expect messages from main: BEGIN_CHECK / END_CHECK (you already send these)
-      // We optimistically update a minimal local rollup for instant feedback.
-      setReport((prev) => {
-        if (!prev) return prev;
-        if (!msg || !msg.type || !msg.id) return prev;
-
-        const id = msg.id as HealthCheckId;
-        const next = structuredClone(prev);
-
-        if (msg.type === "BEGIN_CHECK") {
-          const c = next.checks[id];
-          if (c) {
-            c.status = "checking";
-            c.detail = undefined;
-            c.startedAt = msg.startedAt ?? Date.now();
-            c.finishedAt = undefined;
-            c.durationMs = undefined;
-          }
-        } else if (msg.type === "END_CHECK") {
-          const c = next.checks[id];
-          if (c) {
-            c.status = msg.status as HealthStatus;
-            c.detail = msg.detail;
-            c.finishedAt = msg.finishedAt ?? Date.now();
-            c.durationMs = typeof c.startedAt === "number" ? Math.max(0, (c.finishedAt ?? 0) - c.startedAt) : undefined;
-          }
+        // start global poller
+        await window.api.startHealthPolling(8000);
+      } catch {}
+      // seed quickly
+      try {
+        const seed = await window.api.getHealthReport();
+        if (!cancelled) setReport(seed);
+      } catch {}
+      // subscribe to live updates
+      unsub = window.api.onUpdate((msg: any) => {
+        if (msg?.type === 'END_CHECK') {
+          scheduleFetch();
         }
-
-        // recompute overall
-        next.overall = computeOverall(next);
-        return next;
       });
-    });
-
-    return () => { if (unsub) unsub(); };
+    })();
+    return () => {
+      cancelled = true;
+      unsub?.();
+      window.api.stopHealthPolling().catch(() => {});
+    };
   }, []);
+  // useEffect(() => {
+  //   let unsub: (() => void) | undefined;
+
+  //     // seed from cached report
+  //   (async () => {
+  //     try {
+  //       const snap = await window.api.getHealthReport();
+  //       setReport(snap);
+  //     } catch {
+  //       // ignore; will update on future pushes
+  //     }
+  //   })();
+
+  //   // subscribe to push updates
+  //   unsub = window.api.onUpdate<any>((msg) => {
+  //     // Expect messages from main: BEGIN_CHECK / END_CHECK (you already send these)
+  //     // We optimistically update a minimal local rollup for instant feedback.
+  //     setReport((prev) => {
+  //       if (!prev) return prev;
+  //       if (!msg || !msg.type || !msg.id) return prev;
+
+  //       const id = msg.id as HealthCheckId;
+  //       const next = structuredClone(prev);
+
+  //       if (msg.type === "BEGIN_CHECK") {
+  //         const c = next.checks[id];
+  //         if (c) {
+  //           c.status = "checking";
+  //           c.detail = undefined;
+  //           c.startedAt = msg.startedAt ?? Date.now();
+  //           c.finishedAt = undefined;
+  //           c.durationMs = undefined;
+  //         }
+  //       } else if (msg.type === "END_CHECK") {
+  //         const c = next.checks[id];
+  //         if (c) {
+  //           c.status = msg.status as HealthStatus;
+  //           c.detail = msg.detail;
+  //           c.finishedAt = msg.finishedAt ?? Date.now();
+  //           c.durationMs = typeof c.startedAt === "number" ? Math.max(0, (c.finishedAt ?? 0) - c.startedAt) : undefined;
+  //         }
+  //       }
+
+  //       // recompute overall
+  //       next.overall = computeOverall(next);
+  //       return next;
+  //     });
+  //   });
+
+  //   return () => { if (unsub) unsub(); };
+  // }, []);
 
   const overall = useMemo<HealthStatus>(() => report?.overall ?? "unknown", [report]);
   const tooltip = useMemo(() => {

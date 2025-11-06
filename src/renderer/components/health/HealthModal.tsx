@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { HealthReport, HealthStatus, HealthCheckResult } from '../../../shared/health/types';
+import { mapFriendly } from './utils';
 
 type Props = {
   isOpen: boolean;
@@ -35,10 +36,10 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false, onLi
           const initial = await window.api?.getHealthReport();
           setLiveReport(initial);
         } catch {}
-        try {
-          // start polling & subscribe to pushes
-          await window.api?.startHealthPolling(8000);
-        } catch {}
+        // try {
+        //   // start polling & subscribe to pushes
+        //   await window.api?.startHealthPolling(8000);
+        // } catch {}
         unsub = window.api?.onUpdate((msg: any) => {
           if (msg?.type === 'END_CHECK' || msg?.type === 'BEGIN_CHECK') {
             window.api?.getHealthReport().then(setLiveReport).catch(() => {});
@@ -47,7 +48,7 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false, onLi
       })();
       return () => {
         unsub?.();
-        window.api.stopHealthPolling().catch(() => {});
+        // window.api.stopHealthPolling().catch(() => {});
       };
     } else {
       // snapshot mode
@@ -56,7 +57,7 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false, onLi
       (async () => {
         try {
           // do not keep polling in snapshot mode
-          await window.api?.stopHealthPolling().catch(() => {});
+          // await window.api?.stopHealthPolling().catch(() => {});
           const rep = await window.api?.runAll();
           setSnapshot(rep);
           setAsOf(Date.now());
@@ -108,7 +109,7 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false, onLi
               {(reportToShow?.overall ?? 'unknown').toUpperCase()}
             </span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-5">
             {/* Snapshot timestamp / Live pill */}
             {live ? (
               <span className="text-xs font-medium rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-emerald-700">
@@ -120,18 +121,6 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false, onLi
               </span>
             )}
 
-            {/* Refresh (snapshot only) */}
-            {!live && (
-              <button
-                className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 hover:shadow-sm transition-all duration-200 disabled:opacity-50 cursor-pointer"
-                onClick={refreshOnce}
-                disabled={loading}
-                title="Run checks and refresh this snapshot"
-              >
-                {loading ? 'Refreshing…' : 'Refresh'}
-              </button>
-            )}
-
             {/* Live toggle */}
             <label className="flex items-center gap-2 cursor-pointer select-none" title="Toggle between snapshot and live updates">
               <span className="text-xs text-zinc-600">Live</span>
@@ -141,8 +130,8 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false, onLi
                 checked={live}
                 onChange={(e) => onToggleLive(e.target.checked)}
               />
-              <span className="block h-5 w-9 rounded-full bg-zinc-300 peer-checked:bg-emerald-500 relative transition-colors">
-                <span className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white transition-transform peer-checked:translate-x-4" />
+              <span className="block h-5 w-9 rounded-full bg-zinc-300 peer-checked:bg-emerald-500 relative transition-colors duration-200 [&>span]:transition-transform [&>span]:duration-200 peer-checked:[&>span]:translate-x-4">
+                <span className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white" />
               </span>
             </label>
 
@@ -156,7 +145,7 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false, onLi
           </div>
         </div>
         {/* Body */}
-        <div className="max-h-[60vh] overflow-auto p-2">
+        <div className="p-2">
           {err && (
             <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
               {err}
@@ -168,7 +157,9 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false, onLi
             </div>
           ) : (
             <ul className="space-y-2">
-              {rows.map((r) => (
+              {rows.map((r) => {
+                const { friendly, raw } = mapFriendly(r.detail, r.status);
+                return (
                 <li key={r.id} className="border-b border-zinc-300 p-2 last:border-b-0">
                   {/* top row: label left, status pill right */}
                   <div className="flex items-center justify-between gap-3">
@@ -184,34 +175,28 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false, onLi
                   </div>
                   {/* second row: detail (left, clamped) · meta (right, nowrap) */}
                   <div className="mt-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                    {r.detail ? (
-                      <p 
-                        className={[
-                          'min-w-0 flex-1 text-sm text-zinc-600 [overflow-wrap:anywhere]',
-                          'line-clamp-2', 
-                        ].join(' ')}
-                        title={r.detail}
-                      >
-                        {r.detail}
-                      </p>
-                    ) : (
-                      <p className="min-w-0 flex-1 text-sm text-zinc-500">No details.</p>
-                    )}
+                    <p
+                      className="min-w-0 flex-1 text-xs text-zinc-600 line-clamp-1 [overflow-wrap:anywhere]"
+                      title={raw && raw !== friendly ? raw : friendly}
+                    >
+                      {friendly}
+                    </p>
                     <div className="shrink-0 whitespace-nowrap text-xs text-zinc-500 [font-variant-numeric:tabular-nums]">
                       {formatMeta(r.startedAt, r.finishedAt, r.durationMs, r.status)}
                     </div>
                   </div>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
         </div>
         {/* Footer */}
-        <div className="flex items-center justify-between gap-3 border-t px-3 py-2 min-h-12.5">
+        <div className="flex items-center justify-between gap-3 border-t px-3 py-2 min-h-[51px]">
           <div className="text-xs text-zinc-500">
             {live
               ? 'Live updates every ~8s.'
-              : 'Static snapshot. Click Refresh to re-run checks.'}
+              : "Static snapshot. Click 'Run Checks ↻' to re-run checks."}
           </div>
           {!live && (
             <div className="flex items-center gap-2">
@@ -220,7 +205,7 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false, onLi
                 onClick={refreshOnce}
                 disabled={loading}
               >
-                {loading ? 'Refreshing…' : 'Run Checks'}
+                {loading ? 'Refreshing…' : 'Run Checks ↻'}
               </button>
             </div>
           )}

@@ -1,7 +1,7 @@
 import { BrowserWindow, ipcMain } from "electron";
 import { HEALTH_ORDER, HealthReport, HealthStatus, HealthCheckId, HealthCheckResult } from "../../shared/health/types";
 import { checkAnkiProcess, checkAnkiConnectHttp, checkAnkiConnectVersion, checkAddNoteDryRun } from "./detectors";
-import { sleep, jitter, friendly, isFresh, noteFailFastHit, breakerOpen, dlog } from './utils';
+import { sleep, jitter, isFresh, noteFailFastHit, breakerOpen, dlog } from './utils';
 
 type CheckFn = () => Promise<{ status: 'ok' | 'warning' | 'error'; detail?: string }>;
 
@@ -21,22 +21,33 @@ const LABELS: Record<HealthCheckId, string> = {
 }
 
 let current: HealthReport = makeInitialReport();
-let refreshInFlight = false;
+let polling = false;
 let pollTimer: NodeJS.Timeout | null = null;
+let refreshInFlight = false;
 
 export function startHealthPolling(intervalMs = 8000) {
-  if (pollTimer) return;
+  if (polling) return;
+  polling = true;
   dlog('poll:start', { intervalMs });
   const tick = async () => {
+    if (!polling) return;
+    if (refreshInFlight) return;
+    refreshInFlight = true;
     try { await runAllChecks(); } catch (e) {
-      console.warn('[health:poll] runAllChecks failed:', friendly({ err: e }));
+      console.warn('[health:poll] runAllChecks failed:', e);
+    } finally {
+      refreshInFlight = false;
+      if (polling) { 
+        pollTimer = setTimeout(tick, jitter(intervalMs));
+      }
     }
-    pollTimer = setTimeout(tick, jitter(intervalMs));
   };
   pollTimer = setTimeout(tick, jitter(intervalMs));
 }
 
 export function stopHealthPolling() {
+  if (!polling) return;
+  polling = false;
   if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
   dlog('poll:stop');
 }
@@ -127,7 +138,7 @@ export async function runCheck(id: HealthCheckId): Promise<HealthCheckResult> {
     detail = res.detail;
   } catch (e: any) {
     status = 'error';
-    detail = friendly({ err: e });
+    detail = e;
   }
   const finished = Date.now();
   const durationMs = Math.max(0, finished - started);
@@ -298,6 +309,21 @@ export async function ensureHealthyOrThrow(opts?: {
   dlog('gate:proceed', { overall: current.overall });
 }
 
+let pollOwners = new Set<string>(); // e.g., 'pip', 'modal'
+
+function ensurePollingStarted() {
+  if (!pollTimer) {
+    pollTimer = setInterval(() => { /* runAllChecks() or mini check loop */ }, 8000);
+    dlog('poll:start', { owners: Array.from(pollOwners) });
+  }
+}
+function ensurePollingStopped() {
+  if (pollTimer && pollOwners.size === 0) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+    dlog('poll:stop');
+  }
+}
 export function registerHealthIpc() {
   dlog('ipc:register');
   ipcMain.handle('health:check', async (_e, id: HealthCheckId) => {
@@ -313,13 +339,18 @@ export function registerHealthIpc() {
     await runAllChecks();
     return getReport();
   });
-  ipcMain.handle('health:polling:start', async(_e, intervalMs?: number) => {
+  ipcMain.handle('health:polling:start', async(_e, ownerId: string, intervalMs?: number) => {
     dlog('ipc:invoke health:polling:start', { intervalMs });
-    startHealthPolling(typeof intervalMs === 'number' ? intervalMs: 8000);
+    if (typeof intervalMs === 'number') { /* update interval if desired */ }
+    pollOwners.add(ownerId || 'unknown');
+    ensurePollingStarted();
+    // startHealthPolling(typeof intervalMs === 'number' ? intervalMs: 8000);
   });
-  ipcMain.handle('health:polling:stop', async () => {
+  ipcMain.handle('health:polling:stop', async (_e, ownerId: string) => {
     dlog('ipc:invoke health:polling:stop');
-    stopHealthPolling();
+    pollOwners.delete(ownerId || 'unknown');
+    ensurePollingStopped();
+    // stopHealthPolling();
   });
   ipcMain.handle('health:mini', async () => {
     dlog('ipc:invoke health:mini');
