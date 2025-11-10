@@ -6,10 +6,16 @@ import { useIdleSleep } from './hooks/useIdleSleep'
 import { useHealthChecks } from './hooks/useHealthChecks'
 import { useResizablePanels } from './hooks/useResizablePanels'
 import HealthModal from './components/health/HealthModal'
+import DeckDisplay from './components/deck/DeckDisplay'
 import type { HealthStatus } from '../shared/health/types'
+import { useDeckLifecycle } from './hooks/useDeckLifecycle'
+import NotePreviewEditor from './components/note/NotePreviewEditor'
+import { useNoteCapture } from './hooks/useNoteCapture'
+import HotkeySettings from './components/ui/HotkeySettings'
 
 export function App() {
   useIdleSleep({ idleMs: 3 * 60_000, pollIntervalMs: 8000 })
+  useNoteCapture();
 
   // const [showHealthModal, setShowHealthModal] = useState(false);
 
@@ -38,14 +44,18 @@ export function App() {
     initResizeTopRight,
     isSnapped,
   } = useResizablePanels({
-    defaultSizes: { leftPanel: 40, topRightPanel: 50 },
+    defaultSizes: { leftPanel: 30, topRightPanel: 60 },
     snapThresholdPx: 10
   })
+
+  useDeckLifecycle();
+
+  const ankiconnectHealthy = overall !== 'error';
 
   return (
     <div
       ref={containerRef}
-      className='fixed inset-0 flex flex-col md:flex-row gap-4 h-screen overflow-hidden'
+      className='fixed inset-0 flex flex-col md:flex-row gap-1.5 h-screen overflow-hidden border-t border-zinc-200'
       style={{
         display: 'flex',
         flexDirection: 'row',
@@ -60,49 +70,35 @@ export function App() {
         className='h-full overflow-hidden relative flex flex-none shrink-0'
         style={{ width: `${sizes.leftPanel}%` }}
       >
-        <div className='flex-1 flex flex-col'>
-          <div className='flex items-center justify-between px-4 py-2 border-b border-zinc-200'>
-            <div className='font-semibold'>Decks</div>
-            <button onClick={window.api.addDeck}> + </button>
-            <button onClick={window.api.getDecks}>Refresh</button>
-          </div>
-          <div className='flex-1 p-4 overflow-auto text-sm text-zinc-600'>
-            Left panel content…
-          </div>
+        <div className='flex-1 flex flex-col min-w-0'>
+          <DeckDisplay/>
         </div>
       </div>
-
       {/* VERTICAL RESIZE HANDLE */}
       <div
-        className={`resize-handle horizontal ${
+        className={`resize-handle horizontal min-w-[8px] ${
           isResizing === 'left' ? 'active' : ''
         } ${isSnapped.left ? 'snapped' : ''}`}
         onMouseDown={initResizeLeft}
       />
-
       {/* RIGHT PANEL */}
-      <div className='flex flex-auto min-w-0 flex-col overflow-hidden'>
+      <div className='border-l border-zinc-200 flex flex-auto min-w-0 flex-col overflow-hidden'>
         {/* TOP-RIGHT */}
         <div className='overflow-hidden' style={{ height: `${sizes.topRightPanel}%` }}>
-          <div className='flex items-center justify-between px-4 py-2 border-b border-zinc-200'>
-            <div className='font-semibold'>Top-Right Content</div>
+          {/* <div className='flex items-center justify-between px-3 py-1 border-b border-zinc-200'>
             <Button onClick={runAllChecks}>
               Run Checks
             </Button>
-          </div>
-          <div className='p-4 text-sm text-zinc-600 overflow-auto'>
-            Top-right panel content…
-          </div>
+          </div> */}
+          <NotePreviewEditor ankiconnectHealthy={ankiconnectHealthy} />
         </div>
-
         {/* HORIZONTAL RESIZE HANDLE */}
         <div
-          className={`resize-handle vertical ${
+          className={`resize-handle vertical min-h-[8px] ${
             isResizing === 'topRight' ? 'active' : ''
           } ${isSnapped.topRight ? 'snapped' : ''}`}
           onMouseDown={initResizeTopRight}
         />
-
         {/* BOTTOM-RIGHT */}
         <div
           className='overflow-hidden'
@@ -113,7 +109,6 @@ export function App() {
           </div>
         </div>
       </div>
-
       {/* HEALTH MODAL */}
       {showHealthModal && (
         <HealthModal
@@ -123,9 +118,8 @@ export function App() {
           onLivePrefChange={setLivePref} // persist user toglle
         />
       )}
-           
-      <LiveHealthPip/>
-      
+      <LiveHealthPip />
+      <HotkeySettings />
       {/* INLINE STYLING FOR RESIZE HANDLES */}
       <style>{`
         html, body, #root { height: 100%; }

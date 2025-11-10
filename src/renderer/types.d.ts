@@ -10,18 +10,54 @@ declare global {
 }
 
 interface ApiBridge {
-  runAll(): Promise<HealthReport>;
-  onHealthUpdate<T = unknown>(cb: (evt: T) => void): () => void;
-  startHealthPolling(intervalMs?: number): Promise<void>;
-  stopHealthPolling(): Promise<void>;
-
-  getHealthReport(): Promise<import('../shared/health/types').HealthReport>;
-  onUpdate<T = unknown>(cb: (evt: T) => void): () => void;
-  runMini(): Promise<HealthReport>;
-
-  addDeck(): Promise<void>;
-  getDecks(): Promise<string[]>;
-
-  deckNames?(): Promise<string[]>;
-  ping?(): Promise<{ ok: boolean }>;
+  health: {
+    runAll(): Promise<HealthReport>;
+    onHealthUpdate<T = unknown>(cb: (evt: T) => void): () => void;
+    startHealthPolling(intervalMs?: number): Promise<void>;
+    stopHealthPolling(): Promise<void>;
+    getHealthReport(): Promise<import('../shared/health/types').HealthReport>;
+    onUpdate<T = unknown>(cb: (evt: T) => void): () => void;
+    runMini(): Promise<HealthReport>;
+  };
+  deck: {
+    getDecks(): Promise<Record<string, number>>;
+    createDeck(name: string): Promise<{ id: number }>;
+  };
+  note: {
+    addNote: (payload: {
+      modelName: 'Basic' | 'Cloze';
+      fields: Record<string, string>;
+      tags: string[];
+      deckName?: string;
+      allowDuplicate?: boolean;
+      duplicateScope?: 'deck' | 'collection';
+    }) => Promise<{ noteId: number }>;
+    onNoteCapture: (
+      handler: (data: {
+        side: 'front' | 'back';
+        html: string;
+        source: { origin: 'clipboard'; capturedAt: number };
+      }) => void
+    ) => () => void; // returns unsubscribe
+    onNoteAddRequest: (
+      handler: () => void
+    ) => () => void;
+    onNoteUndoCapture: (
+      handler: () => void
+    ) => () => void;
+  };
+  noteHotkeys: {
+    getAll: () => Promise<[
+      defaults: Record<string, string>,
+      overrides: Record<string, string>,
+      effective: Record<string, string>,
+      inactive: string[],
+      issues: Record<string, string | undefined>
+    ]>;
+    set: (actionId: string, accelerator: string | null) => Promise<{ ok: boolean, reason?: string, snapshot: any }>;
+    resetAll: () => Promise<void>;
+    suspend: (on: boolean) => Promise<void>;
+    onChanged: (handler: (data: any) => void) => () => void;
+    onOpenPanel: (handler: () => void) => () => void;
+  };
 }

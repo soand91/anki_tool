@@ -22,8 +22,8 @@ export function useIdleSleep(opts: UseIdleOptions = {}) {
         setIdle(false);
         // fire-and-forget, don't block UI
         (async () => {
-          try { await window.api.runMini(); } catch {}
-          try { await window.api.startHealthPolling(pollIntervalMs); } catch {}
+          try { await window.api.health.runMini(); } catch {}
+          try { await window.api.health.startHealthPolling(pollIntervalMs); } catch {}
         })();
       }
     };
@@ -40,7 +40,7 @@ export function useIdleSleep(opts: UseIdleOptions = {}) {
       if (idleNow && !idle) {
         setIdle(true);
         // pause polling while idle
-        (async () => { try { await window.api.stopHealthPolling(); } catch {} })();
+        (async () => { try { await window.api.health.stopHealthPolling(); } catch {} })();
       }
       timerRef.current = window.setTimeout(tick, 5_000);
     }

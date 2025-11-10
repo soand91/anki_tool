@@ -20,7 +20,7 @@ export default function LiveHealthPip() {
       if (t) return;
       t = setTimeout(() => {
         t = null;
-        window.api.getHealthReport()
+        window.api.health.getHealthReport()
           .then(r => { if (!cancelled) setReport(r); })
           .catch(() => {});
       }, 120);
@@ -28,15 +28,15 @@ export default function LiveHealthPip() {
     (async () => {
       try {
         // start global poller
-        await window.api.startHealthPolling(8000);
+        await window.api.health.startHealthPolling(8000);
       } catch {}
       // seed quickly
       try {
-        const seed = await window.api.getHealthReport();
+        const seed = await window.api.health.getHealthReport();
         if (!cancelled) setReport(seed);
       } catch {}
       // subscribe to live updates
-      unsub = window.api.onUpdate((msg: any) => {
+      unsub = window.api.health.onUpdate((msg: any) => {
         if (msg?.type === 'END_CHECK') {
           scheduleFetch();
         }
@@ -45,7 +45,7 @@ export default function LiveHealthPip() {
     return () => {
       cancelled = true;
       unsub?.();
-      window.api.stopHealthPolling().catch(() => {});
+      window.api.health.stopHealthPolling().catch(() => {});
     };
   }, []);
   // useEffect(() => {
@@ -112,7 +112,7 @@ export default function LiveHealthPip() {
   }, [report]);
 
   return (
-    <div className="fixed bottom-3 right-3 z-40 select-none cursor-help" title={tooltip}>
+    <div className="fixed bottom-2.5 right-2.5 z-40 select-none cursor-help flex items-center justify-center" title={tooltip}>
       <span className={`inline-block h-3.5 w-3.5 rounded-full shadow ${statusToClasses(overall)}`} />
     </div>
   );

@@ -1,19 +1,14 @@
 import { ipcMain } from 'electron';
-import { ankiCall } from './anki';
+import { ankiCall } from './ankiClient';
 import { log } from './log';
 import { ensureHealthyOrThrow, registerHealthIpc } from './health/runHealth';
-import { registerDeckIpc } from './decks/runDecks';
+import { registerAnkiDeckIpc } from './decks/runDecks';
+import { registerHotkeysIpc } from './hotkeys/hotkeyIpc';
 
 export function registerIpc() {
   log.info("[main] registerIpc()");
 
   registerHealthIpc();
-  registerDeckIpc();
-
-  ipcMain.handle('anki:deckNames', async () => {
-    log.info("[main] anki:deckNames invoked");
-    await ensureHealthyOrThrow({ ttlMs: 10_000, allowProceedIfStale: true, refreshIfStale: true });
-    return ankiCall({ action: 'deckNames', version: 6 });
-  });
-  
+  registerAnkiDeckIpc();  
+  registerHotkeysIpc();
 }

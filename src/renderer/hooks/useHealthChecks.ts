@@ -43,14 +43,14 @@ export function useHealthChecks() {
     let unsub: undefined | (() => void);
     (async () => {
       try { 
-        const snap = await window.api.getHealthReport();
+        const snap = await window.api.health.getHealthReport();
         setReport(snap);
       } catch {
         // ignore; will be updated by pushes
       }
     })();
     // push updates (BEGIN_CHECK / END_CHECK or full snapshots)
-    unsub = window.api.onUpdate<IncrementalEvt | HealthReport>((msg) => {
+    unsub = window.api.health.onUpdate<IncrementalEvt | HealthReport>((msg) => {
       // full snapshot path
       if ((msg as HealthReport).checks && (msg as HealthReport).overall) {
         setReport(msg as HealthReport);

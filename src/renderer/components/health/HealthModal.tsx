@@ -33,16 +33,16 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false, onLi
       (async () => {
         try {
           // kick an immediate pull so UI isn't empty while waiting for the first push
-          const initial = await window.api?.getHealthReport();
+          const initial = await window.api?.health.getHealthReport();
           setLiveReport(initial);
         } catch {}
         // try {
         //   // start polling & subscribe to pushes
         //   await window.api?.startHealthPolling(8000);
         // } catch {}
-        unsub = window.api?.onUpdate((msg: any) => {
+        unsub = window.api?.health.onUpdate((msg: any) => {
           if (msg?.type === 'END_CHECK' || msg?.type === 'BEGIN_CHECK') {
-            window.api?.getHealthReport().then(setLiveReport).catch(() => {});
+            window.api?.health.getHealthReport().then(setLiveReport).catch(() => {});
           }
         });
       })();
@@ -58,7 +58,7 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false, onLi
         try {
           // do not keep polling in snapshot mode
           // await window.api?.stopHealthPolling().catch(() => {});
-          const rep = await window.api?.runAll();
+          const rep = await window.api?.health.runAll();
           setSnapshot(rep);
           setAsOf(Date.now());
         } catch (e: any) {
@@ -78,7 +78,7 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false, onLi
     setErr(null);
     setLoading(true);
     try {
-      const rep = await window.api?.runAll();
+      const rep = await window.api?.health.runAll();
       setSnapshot(rep);
       setAsOf(Date.now());
     } catch (e: any) {
@@ -137,7 +137,7 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false, onLi
 
             {/* Close */}
             <button
-              className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 hover:shadow-sm transition-all duration-200 cursor-pointer"
+              className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-200 hover:shadow-sm hover:text-zinc-900 transition-all duration-200 cursor-pointer"
               onClick={onClose}
             >
               Close
@@ -201,7 +201,7 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false, onLi
           {!live && (
             <div className="flex items-center gap-2">
               <button
-                className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 hover:shadow-sm transition-all duration-200 disabled:opacity-50 cursor-pointer"
+                className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-200 hover:shadow-sm hover:text-zinc-900 transition-all duration-200 disabled:opacity-50 cursor-pointer"
                 onClick={refreshOnce}
                 disabled={loading}
               >

@@ -1,0 +1,309 @@
+import React, { useMemo, useState, useEffect, useRef } from 'react';
+import {
+  useAllDecks,
+  useDeckError,
+  useDeckStatus,
+  useLastFetchedAt,
+  useSelectedDeckId, 
+  useDeckStore,
+} from '../../state/deckStore';
+
+function timeAgo(ts: number): string {
+  if (!ts) return 'never';
+  const s = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  if (s < 5) return 'just now';
+  if (s < 60) return `${s}s ago`;
+  const m =  Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  return `${h}h ago`;
+}
+
+export default function DeckDisplay() {
+  // read only selectors
+  const decks = useAllDecks();
+  const selectedId = useSelectedDeckId();
+  const status = useDeckStatus();
+  const error = useDeckError();
+  const lastFetchedAt = useLastFetchedAt();
+
+  // local ui state
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState('');
+  const isLoading = status === 'loading';
+  const isError = status === 'error';
+
+  // Fetch decks on mount only - use ref to ensure it runs once
+  const hasInitialized = useRef(false);
+  useEffect(() => {
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
+      console.log('DeckDisplay: Initial refresh');
+      useDeckStore.getState().refresh();
+    }
+  }, []);
+
+  const headerSubtitle = useMemo(() => {
+    if (isLoading) return 'Loading decks…';
+    if (isError) return 'Failed to load decks.';
+    return `Updated ${timeAgo(lastFetchedAt)}`;
+  }, [isLoading, isError, lastFetchedAt]);
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = newName.trim();
+    if (!name) return;
+    try {
+      setCreating(true);
+      await useDeckStore.getState().create(name);
+      setNewName('');
+    } catch {
+      // error is already set in store
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    console.log('Manual refresh clicked');
+    useDeckStore.getState().refresh({ force: true });
+  };
+
+  const handleRevalidate = () => {
+    console.log('Revalidate clicked');
+    useDeckStore.getState().refresh();
+  };
+
+  const handleSelect = (deckId: number) => {
+    console.log('Deck selected:', deckId);
+    useDeckStore.getState().select(deckId);
+  };
+
+  type TreeNode = {
+    id: number;
+    name: string;
+    level: number;
+    children: TreeNode[];
+    hasChildren: boolean;
+    optimistic?: boolean;
+  };
+
+  function buildDeckTree(sortedDecks: { id: number; name:string; segments: string[]; _optimistic?: boolean }[]): TreeNode[] {
+    // parentKey is full path of parent, e.g. "Parent::Child"
+    const byPath = new Map<string, TreeNode>();
+    const roots: TreeNode[] = [];
+
+    for (const d of sortedDecks) {
+      const level = d.segments.length - 1;
+      const path = d.name;
+      const node: TreeNode = {
+        id: d.id, 
+        name: d.name,
+        level,
+        children: [],
+        hasChildren: false,
+        optimistic: d._optimistic,
+      };
+      byPath.set(path, node);
+    }
+
+    // wire parents/children
+    for (const node of byPath.values()) {
+      const segs = node.name.split('::');
+      if (segs.length > 1) {
+        const parentPath = segs.slice(0, segs.length - 1).join('::');
+        const parent = byPath.get(parentPath);
+        if (parent) {
+          parent.children.push(node);
+          parent.hasChildren = true;
+        } else {
+          roots.push(node);
+        }
+      } else {
+        roots.push(node);
+      }
+    }
+
+    // ensure children are alphabetically ordered
+    const sortChildren = (n: TreeNode) => {
+      n.children.sort((a, b) => a.name.localeCompare(b.name));
+      n.children.forEach(sortChildren);
+    };
+    roots.sort((a, b) => a.name.localeCompare(b.name));
+    roots.forEach(sortChildren);
+    return roots;
+  }
+
+  function flattenVisible(nodes: TreeNode[], expanded: Set<number>): TreeNode[] {
+    const out: TreeNode[] = [];
+    const walk = (arr: TreeNode[]) => {
+      for (const n of arr) {
+        out.push(n);
+        if (n.hasChildren && expanded.has(n.id)) {
+          walk(n.children);
+        }
+      }
+    };
+    walk(nodes);
+    return out;
+  }
+
+  const tree = useMemo(() => buildDeckTree(decks), [decks]);
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+
+  const toggleExpand = (id: number) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const rows = useMemo(() => flattenVisible(tree, expandedIds), [tree, expandedIds]);
+
+  return (
+    <div className="h-full flex flex-col border-r border-zinc-200">
+      {/* Header */}
+      <div className="cursor-default mb-2 flex items-center justify-between px-3 py-1 border-b border-zinc-200">
+        <div className="flex flex-col">
+          <h2 className="text-sm font-semibold text-zinc-800">Decks</h2>
+          <span className="text-[11px] text-zinc-500">{headerSubtitle}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            className="cursor-pointer rounded-md border border-zinc-300 px-2.5 py-1.5 text-xs text-zinc-700 hover:bg-zinc-200 hover:shadow-sm hover:text-zinc-900 transition-all duration-200 h-[30px]"
+            onClick={handleRefresh}
+            disabled={isLoading}
+            title="Refresh decks"
+          >
+            Refresh
+          </button>
+          <button
+            className="cursor-pointer rounded-md bg-zinc-900 text-white px-2.5 py-1.5 text-xs hover:bg-zinc-700 hover:shadow-sm hover:text-zinc-200 transition-all duration-200 h-[30px]"
+            onClick={() => setCreating((v) => !v)}
+            title="Create a new deck"
+          >
+            + New
+          </button>
+        </div>
+      </div>
+      {/* Create form */}
+      {creating && (
+        <form onSubmit={handleCreate} className="px-3 py-1.5 border-b border-zinc-200">
+          <label className="block text-xs text-zinc-600 mb-1">
+              Full deck name (supports <code className="font-mono">Parent::Child</code>)
+          </label>
+          <div className="flex items-center gap-2">
+              <input
+                className="cursor-text flex-1 rounded-md border border-zinc-300 px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-zinc-300 h-[30px] hover:border-zinc-500 hover:bg-zinc-100 transition-all duration-200"
+                placeholder="e.g. Inbox::Lecture 12"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                autoFocus
+              />
+              <button
+                className="cursor-pointer rounded-md bg-zinc-900 text-white px-3 py-1.5 text-xs hover:bg-zinc-700 hover:shadow-sm hover:text-zinc-200 transition-all duration-200 h-[30px]"
+                type="submit"
+                disabled={!newName.trim()}
+              >
+                Create
+              </button>
+              <button
+                className="cursor-pointer rounded-md border border-zinc-300 px-3 py-1.5 text-xs text-zinc-700 hover:bg-zinc-200 hover:shadow-sm hover:text-zinc-900 transition-all duration-200 h-[30px]"
+                type="button"
+                onClick={() => {
+                  setCreating(false);
+                  setNewName('');
+                }}
+              >
+                Cancel
+              </button>
+          </div>
+          {isError && (
+            <p className="mt-2 text-xs text-red-600">
+              {error ?? 'Failed to create deck.'}
+            </p>
+          )}
+        </form>
+      )}
+      {/* Error banner (fetch/list) */}
+      {isError && !creating && (
+        <div className="px-3 py-2 border-b border-red-200 bg-red-50 text-xs text-red-700">
+          {error ?? 'Failed to fetch decks.'}{' '}
+          <button
+            className="underline"
+            onClick={handleRefresh}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+      {/* Deck list */}
+      <div className="flex-1 overflow-auto scrollbar">
+        {decks.length === 0 && status !== 'loading' ? (
+            <div className="p-4 text-sm text-zinc-500">No decks yet.</div>
+        ) : (
+          <ul className="px-2.5">
+            {rows.map((n) => {
+              const isSelected = n.id === selectedId;
+              const canToggle = n.hasChildren;
+              const isOpen = expandedIds.has(n.id);
+              return (
+                <li
+                  key={n.id}
+                  className={[
+                    'select-none flex items-center justify-between rounded-xl no-underline',
+                    isSelected ? 'bg-zinc-200' : 'hover:bg-zinc-200',
+                  ].join(' ')}
+                  onClick={() => handleSelect(n.id)}
+                  title={n.name}
+                >
+                  <div className="flex items-center min-w-0 flex-1 py-1 " style={{ paddingLeft: n.level * 14 }} >
+                    {canToggle ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleExpand(n.id);
+                        }}
+                        className="w-5 h-5 text-xs rounded flex items-center justify-center"
+                        aria-label={isOpen ? "Collapse" : "Expand"}
+                      >
+                        {isOpen ? '−' : '＋'}
+                      </button>
+                    ) : (
+                      <span className="w-5 h-5" />
+                    )}
+                    <div className="truncate text-sm text-zinc-800 flex-1 hover:underline">
+                      {n.name.split('::').slice(-1)[0]}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {n.optimistic && (
+                      <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-zinc-200 text-zinc-700">
+                        syncing…
+                      </span>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+      {/* Footer (status) */}
+      <div className="px-3 py-2 border-t border-zinc-200 text-[11px] text-zinc-500 flex items-center justify-between">
+        <span>Status: {status}</span>
+        <button
+          className="underline cursor-pointer"
+          onClick={handleRevalidate}
+          disabled={isLoading}
+          title="Revalidate if stale (TTL)"
+        >
+          Open Health
+        </button>
+      </div>
+    </div>
+  );
+}

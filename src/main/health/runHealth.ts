@@ -175,6 +175,7 @@ export async function runAllChecks(): Promise<HealthReport> {
     await skipCheck('ankiconnect.http', 'Skipped: Anki is not running.');
     await skipCheck('ankiconnect.version', 'Skipped: Anki is not running.');
     await skipCheck('ankiconnect.addNoteDryRun', 'Skipped: Anki is not running.');
+    broadcastWithOverall({ type: 'RUN_ALL_END' });
     return current;
   }
   // 2) Grace after process OK 
@@ -185,6 +186,7 @@ export async function runAllChecks(): Promise<HealthReport> {
     await skipCheck('ankiconnect.version', 'Skipped: Ankiconnect HTTP not reachable.');
     await skipCheck('ankiconnect.addNoteDryRun', 'Skipped: Ankiconnect HTTP not reachable.');
     dlog('runAll:shortcircuit', { at: 'http', status: rHttp.status });
+    broadcastWithOverall({ type: 'RUN_ALL_END' });
     return current;
   }
   // 4) Version
@@ -196,12 +198,16 @@ export async function runAllChecks(): Promise<HealthReport> {
     if (rVer.status === 'error') {
       await skipCheck('ankiconnect.addNoteDryRun', 'Skipped: Version check failed.');
       dlog('runAll:shortcircuit', { at: 'version', status: rVer.status });
+      broadcastWithOverall({ type: 'RUN_ALL_END' });
       return current;
     }
   }
   // 5) Dry run
   await runCheck('ankiconnect.addNoteDryRun');
   dlog('runAll:end', { overall: current.overall });
+
+  broadcastWithOverall({ type: 'RUN_ALL_END' });
+
   return current;
 }
 

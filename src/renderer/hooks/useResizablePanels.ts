@@ -6,7 +6,7 @@ export function useResizablePanels(opts?: {
   defaultSizes?: PanelSizes;
   snapThresholdPx?: number;
 }) {
-  const defaultSizes: PanelSizes = opts?.defaultSizes ?? { leftPanel: 40, topRightPanel: 50 };
+  const defaultSizes: PanelSizes = opts?.defaultSizes ?? { leftPanel: 30, topRightPanel: 60 };
   const snapThresholdPx = opts?.snapThresholdPx ?? 10;
 
   const containerRef = useRef<HTMLDivElement | null>(null);
