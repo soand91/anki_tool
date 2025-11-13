@@ -1,6 +1,5 @@
 // src/renderer/App.tsx
 import React, { useState } from 'react'
-import { Button } from './components/ui/Button'
 import LiveHealthPip from './components/health/LiveHealthPip'
 import { useIdleSleep } from './hooks/useIdleSleep'
 import { useHealthChecks } from './hooks/useHealthChecks'
@@ -11,7 +10,8 @@ import type { HealthStatus } from '../shared/health/types'
 import { useDeckLifecycle } from './hooks/useDeckLifecycle'
 import NotePreviewEditor from './components/note/NotePreviewEditor'
 import { useNoteCapture } from './hooks/useNoteCapture'
-import HotkeySettings from './components/ui/HotkeySettings'
+import SettingsModal from './components/ui/SettingsModal'
+import HealthModalHost from './components/health/HealthModalHost'
 
 export function App() {
   useIdleSleep({ idleMs: 3 * 60_000, pollIntervalMs: 8000 })
@@ -109,17 +109,9 @@ export function App() {
           </div>
         </div>
       </div>
-      {/* HEALTH MODAL */}
-      {showHealthModal && (
-        <HealthModal
-          isOpen={showHealthModal}
-          onClose={() => setShowHealthModal(false)}
-          defaultLive={modalDefaultLive} // snapshot mode by default
-          onLivePrefChange={setLivePref} // persist user toglle
-        />
-      )}
+      <HealthModalHost />
       <LiveHealthPip />
-      <HotkeySettings />
+      <SettingsModal />
       {/* INLINE STYLING FOR RESIZE HANDLES */}
       <style>{`
         html, body, #root { height: 100%; }

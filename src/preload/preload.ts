@@ -89,6 +89,33 @@ const noteHotkeys = {
   }
 }
 
+const settings = {
+  // open Settings modal from main (menu/tray). Payload may include { section: 'hotkeys' | 'general }
+  onOpen: (cb: (payload?: any) => void) => {
+    const channel = 'open-settings';
+    const handler = (_: Electron.IpcRendererEvent, payload?: any) => cb(payload);
+    ipcRenderer.on(channel, handler);
+    return () => ipcRenderer.removeListener(channel, handler);
+  },
+  prefs: {
+    get: (key: 'minimizeToTray') => ipcRenderer.invoke('prefs:get', key),
+    set: (key: 'minimizeToTray', value: boolean) => ipcRenderer.invoke('prefs:set', key, value),
+  },
+  hotkeys: {
+    // proxy to existing hotkey endpoints so renderer can use one place
+    list: () => ipcRenderer.invoke('note:hotkeys:getAll'),
+    set: (actionId: string, accelerator: string | null) => 
+      ipcRenderer.invoke('note:hotkeys:set', { actionId, accelerator }),
+    resetAll: () => ipcRenderer.invoke('note:hotkeys:resetAll'),
+    suspend: (on: boolean) => ipcRenderer.invoke('note:hotkeys:suspend', on),
+    onChanged: (handler: (data: any) => void) => {
+      const wrapped = (_e: IpcRendererEvent, data: any) => handler(data);
+      ipcRenderer.on('note:hotkeysChanged', wrapped);
+      return () => ipcRenderer.off('note:hotkeysChanged', wrapped);
+    },
+  },
+};
+
 console.log('[preload] loaded');
 
 contextBridge.exposeInMainWorld('api', {
@@ -96,6 +123,7 @@ contextBridge.exposeInMainWorld('api', {
   deck,
   note,
   noteHotkeys,
+  settings,
 });
 
 contextBridge.exposeInMainWorld('env', {

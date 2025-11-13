@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 export type HotkeyActionId = 
+  | 'app.showWindow'
   | 'note.captureFront'
   | 'note.captureBack'
   | 'note.add'
@@ -17,14 +18,15 @@ type StoreShape = {
 
 const isMac = process.platform === 'darwin';
 const DEFAULTS: HotkeyConfig = {
-  'note.captureFront': isMac ? 'Command+Shift+Alt+A' : 'Control+Shift+Alt+A', 
-  'note.captureBack' : isMac ? 'Command+Shift+Alt+S' : 'Control+Shift+Alt+S',
-  'note.add'         : isMac ? 'Command+Shift+Alt+X' : 'Control+Shift+Alt+X',
-  'note.undoCapture' : isMac ? 'Command+Shift+Alt+Z' : 'Control+Shift+Alt+Z',
+  'app.showWindow'   : isMac ? 'Command+Shift+Alt+W' : 'Ctrl+Shift+Alt+W',
+  'note.captureFront': isMac ? 'Command+Shift+Alt+A' : 'Ctrl+Shift+Alt+A', 
+  'note.captureBack' : isMac ? 'Command+Shift+Alt+S' : 'Ctrl+Shift+Alt+S',
+  'note.add'         : isMac ? 'Command+Shift+Alt+X' : 'Ctrl+Shift+Alt+X',
+  'note.undoCapture' : isMac ? 'Command+Shift+Alt+Z' : 'Ctrl+Shift+Alt+Z',
 };
 
 const BLOCKED = new Set([
-  'Alt+F4', 'Command+Q', 'Control+Q', 'Command+W', 'Control+W'
+  'Alt+F4', 'Command+Q', 'Ctrl+Q', 'Command+W', 'Ctrl+W'
 ]);
 
 const STORE_PATH = path.join(app.getPath('userData'), 'hotkeys.json');
@@ -61,12 +63,12 @@ function normalizeAccelerator(accel: string): string {
     ? s.split('+')
     : (s.match(/(Command|Control|Ctrl|Alt|Option|Shift|Meta|[A-Z][a-z]+|[A-Z]|\d+|F\d{1,2}|Enter|Tab|Backspace|Delete|Escape|Esc|Space|Up|Down|Left|Right)/g) || []);
   const norm = parts
-    .map(p => (p === 'Ctrl' ? 'Control' : p)) // unify Ctrl -> Control
+    .map(p => (p === 'Control' ? 'Ctrl' : p)) // unify Control -> Ctrl
     .map(p => p.length === 1 ? p.toUpperCase() : (p[0].toUpperCase() + p.slice(1)))
     .join('+');
 
   if (process.platform !== 'darwin') {
-    return norm.replace(/^Command\+/, 'Control+').replace(/\+Command\+/g, '+Control+');
+    return norm.replace(/^Command\+/, 'Ctrl+').replace(/\+Command\+/g, '+Ctrl+');
   }
   return norm;
 }
@@ -79,6 +81,7 @@ export function mergeEffective(overrides: StoreShape['overrides']): {
   const effective: HotkeyConfig = { ...DEFAULTS };
   const inactive: HotkeyActionId[] = [];
   const issues: Record<HotkeyActionId, string | undefined> = {
+    'app.showWindow': undefined,
     'note.captureFront': undefined,
     'note.captureBack': undefined,
     'note.add': undefined,
@@ -192,6 +195,13 @@ export class HotkeyRegistry {
     if (this.suspended) return;
     if (!this.win) return;
     switch (id) {
+      case 'app.showWindow': {
+        const w = this.win;
+        if (!w.isVisible()) w.show();
+        if (w.isMinimized()) w.restore();
+        w.focus()
+        break;
+      }
       case 'note.captureFront':
         this.win.webContents.send('note:capture', {
           side: 'front',

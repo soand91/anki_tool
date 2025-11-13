@@ -74,7 +74,7 @@ export function setupTray({
   onToggleMain: () => void;
   onOpenSettings: () => void;
   onQuit: () => void;
-  menu: ReturnType<typeof import('./menu')['buildTrayMenu']>;
+  menu: Electron.Menu;
 }) {
   const s = appStore.getState();
   lastTrayState = s.tray;

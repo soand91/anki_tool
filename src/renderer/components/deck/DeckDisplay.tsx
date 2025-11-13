@@ -7,6 +7,9 @@ import {
   useSelectedDeckId, 
   useDeckStore,
 } from '../../state/deckStore';
+import Button from '../ui/Button';
+import { useUiStore } from '../../state/ui';
+import { useHealthChecks } from '../../hooks/useHealthChecks';
 
 function timeAgo(ts: number): string {
   if (!ts) return 'never';
@@ -20,6 +23,10 @@ function timeAgo(ts: number): string {
 }
 
 export default function DeckDisplay() {
+  const openHealthModal = useUiStore(s => s.openHealthModal);
+  const {
+    runAllChecks
+  } = useHealthChecks()
   // read only selectors
   const decks = useAllDecks();
   const selectedId = useSelectedDeckId();
@@ -67,11 +74,6 @@ export default function DeckDisplay() {
   const handleRefresh = () => {
     console.log('Manual refresh clicked');
     useDeckStore.getState().refresh({ force: true });
-  };
-
-  const handleRevalidate = () => {
-    console.log('Revalidate clicked');
-    useDeckStore.getState().refresh();
   };
 
   const handleSelect = (deckId: number) => {
@@ -171,21 +173,21 @@ export default function DeckDisplay() {
           <span className="text-[11px] text-zinc-500">{headerSubtitle}</span>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            className="cursor-pointer rounded-md border border-zinc-300 px-2.5 py-1.5 text-xs text-zinc-700 hover:bg-zinc-200 hover:shadow-sm hover:text-zinc-900 transition-all duration-200 h-[30px]"
+          <Button
+            variant='outline'
             onClick={handleRefresh}
             disabled={isLoading}
-            title="Refresh decks"
+            title='Refresh decks'
           >
             Refresh
-          </button>
-          <button
-            className="cursor-pointer rounded-md bg-zinc-900 text-white px-2.5 py-1.5 text-xs hover:bg-zinc-700 hover:shadow-sm hover:text-zinc-200 transition-all duration-200 h-[30px]"
-            onClick={() => setCreating((v) => !v)}
-            title="Create a new deck"
+          </Button>
+          <Button
+            variant='solid'
+            onClick={() => setCreating(v => !v)}
+            title='Create a new deck'
           >
             + New
-          </button>
+          </Button>
         </div>
       </div>
       {/* Create form */}
@@ -293,13 +295,18 @@ export default function DeckDisplay() {
         )}
       </div>
       {/* Footer (status) */}
-      <div className="px-3 py-2 border-t border-zinc-200 text-[11px] text-zinc-500 flex items-center justify-between">
-        <span>Status: {status}</span>
+      <div className="px-8 py-2 border-t border-zinc-200 text-[11px] text-zinc-500 flex items-center justify-between">
         <button
           className="underline cursor-pointer"
-          onClick={handleRevalidate}
-          disabled={isLoading}
-          title="Revalidate if stale (TTL)"
+          onClick={() => {
+            if (typeof (window as any).api?.health?.runAllChecks === 'function') {
+              (window as any).api.health.runAllChecks().catch(() => {});
+            } else {
+              runAllChecks();
+            }
+            openHealthModal();
+          }}
+          title="Run health checks and open report"
         >
           Open Health
         </button>

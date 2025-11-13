@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { useNoteDraft } from '../../hooks/useNoteDraft';
 import { useDeckStore } from '../../state/deckStore';
+import Button from '../ui/Button';
 
 type Props = {
   ankiconnectHealthy: boolean;
@@ -146,22 +147,22 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
             </select>
           </div>
           {/* Actions */}
-          <button
-            className={`flex-shrink-0 cursor-pointer rounded-md text-white px-2.5 py-1.5 text-xs h-[30px] ${disabled ? 'bg-zinc-300' : 'bg-zinc-900 hover:bg-zinc-700 hover:shadow-sm hover:text-zinc-200 transition-all duration-200'}`}
+          <Button
+            variant='solid'
             onClick={onAddNote}
             disabled={disabled}
             title={disabled ? 'Front required and AnkiConnect must be available' : 'Add note'}
           >
             Add Note
-          </button>
+          </Button>
           {!confirmingClear ? (
-            <button 
-              className='flex-shrink-0 cursor-pointer rounded-md border border-zinc-300 px-2.5 py-1.5 text-xs text-zinc-700 hover:bg-zinc-200 hover:shadow-sm hover:text-zinc-900 transition-all duration-200 h-[30px]'
+            <Button
+              variant='outline'
               onClick={handleClear}
               title={isDraftDirty ? 'Click again to confirm' : 'Clear'}
             >
               Clear
-            </button>
+            </Button>
           ) : (
             <div className='flex items-center gap-2'>
               <button 
@@ -171,13 +172,13 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
               >
                 Confirm
               </button>
-              <button
-                className='flex-shrink-0 cursor-pointer rounded-md border border-zinc-300 px-2.5 py-1.5 text-xs text-zinc-700 hover:bg-zinc-200 hover:shadow-sm hover:text-zinc-900 transition-all duration-200 h-[30px]'
+              <Button
+                variant='outline'
                 onClick={() => { cancelClearCountdown(); setConfirmingClear(false); }}
                 title='Cancel'
               >
                 Cancel
-              </button>
+              </Button>
             </div>
           )}
         </div>

@@ -48,57 +48,6 @@ export default function LiveHealthPip() {
       window.api.health.stopHealthPolling().catch(() => {});
     };
   }, []);
-  // useEffect(() => {
-  //   let unsub: (() => void) | undefined;
-
-  //     // seed from cached report
-  //   (async () => {
-  //     try {
-  //       const snap = await window.api.getHealthReport();
-  //       setReport(snap);
-  //     } catch {
-  //       // ignore; will update on future pushes
-  //     }
-  //   })();
-
-  //   // subscribe to push updates
-  //   unsub = window.api.onUpdate<any>((msg) => {
-  //     // Expect messages from main: BEGIN_CHECK / END_CHECK (you already send these)
-  //     // We optimistically update a minimal local rollup for instant feedback.
-  //     setReport((prev) => {
-  //       if (!prev) return prev;
-  //       if (!msg || !msg.type || !msg.id) return prev;
-
-  //       const id = msg.id as HealthCheckId;
-  //       const next = structuredClone(prev);
-
-  //       if (msg.type === "BEGIN_CHECK") {
-  //         const c = next.checks[id];
-  //         if (c) {
-  //           c.status = "checking";
-  //           c.detail = undefined;
-  //           c.startedAt = msg.startedAt ?? Date.now();
-  //           c.finishedAt = undefined;
-  //           c.durationMs = undefined;
-  //         }
-  //       } else if (msg.type === "END_CHECK") {
-  //         const c = next.checks[id];
-  //         if (c) {
-  //           c.status = msg.status as HealthStatus;
-  //           c.detail = msg.detail;
-  //           c.finishedAt = msg.finishedAt ?? Date.now();
-  //           c.durationMs = typeof c.startedAt === "number" ? Math.max(0, (c.finishedAt ?? 0) - c.startedAt) : undefined;
-  //         }
-  //       }
-
-  //       // recompute overall
-  //       next.overall = computeOverall(next);
-  //       return next;
-  //     });
-  //   });
-
-  //   return () => { if (unsub) unsub(); };
-  // }, []);
 
   const overall = useMemo<HealthStatus>(() => report?.overall ?? "unknown", [report]);
   const tooltip = useMemo(() => {
@@ -112,7 +61,7 @@ export default function LiveHealthPip() {
   }, [report]);
 
   return (
-    <div className="fixed bottom-2.5 right-2.5 z-40 select-none cursor-help flex items-center justify-center" title={tooltip}>
+    <div className="fixed bottom-2.5 left-2.5 z-40 select-none cursor-help flex items-center justify-center" title={tooltip}>
       <span className={`inline-block h-3.5 w-3.5 rounded-full shadow ${statusToClasses(overall)}`} />
     </div>
   );

@@ -31,12 +31,5 @@ export function createMainWindow() {
     win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   }
 
-  win.on('close', (e) => {
-    if (process.platform !== 'darwin') {
-      e.preventDefault();
-      win.hide();
-    }
-  });
-
   return win;
 }

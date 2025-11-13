@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron';
-import { hotkeys } from './hotkeyRegistry';
+import { hotkeys } from './hotkey.store';
 
 export function registerHotkeysIpc() {
   ipcMain.handle('note:hotkeys:getAll', () => hotkeys.getSnapshot());
