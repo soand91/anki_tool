@@ -26,12 +26,12 @@ export default function Button(props: ButtonProps) {
   const commonDisabled = 'cursor-not-allowed opacity-90';
 
   const outlineEnabled = 
-    'border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-200 hover:text-zinc-900';
+    'border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-200 hover:text-zinc-900 dark:border-zinc-950 dark:bg-[#323232] dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-zinc-100';
   const outlineDisabled = 'border border-zinc-200 bg-zinc-100 text-zinc-400';
 
   const solidEnabled = 
-    'bg-zinc-900 text-white hover:bg-zinc-700 hover:text-zinc-200';
-  const solidDisabled = 'bg-zinc-300 text-white';
+    'border border-transparent bg-zinc-900 text-white hover:bg-zinc-700 hover:text-zinc-200 dark:bg-zinc-400 dark:text-black dark:hover:bg-zinc-500 dark:hover:text-black dark:border dark:border-transparent';
+  const solidDisabled = 'bg-zinc-300 text-white dark:border dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-600 dark:opacity-50';
 
   const variantClasses =
     variant === 'outline'

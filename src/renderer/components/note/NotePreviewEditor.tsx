@@ -121,19 +121,19 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
   return (
     <div className='flex h-full flex-col pb-1.5'>
       {/* Header */}
-      <div className='cursor-default mb-1.25 flex items-center justify-between border-b border-zinc-200 px-3 py-1'>
+      <div className='cursor-default mb-1.25 flex items-center justify-between border-b border-zinc-200 px-3 py-1 dark:border-zinc-950'>
         <div className="flex flex-1 flex-col min-w-0 flex-shrink overflow-hidden">
-          <h2 className="truncate text-sm font-semibold text-zinc-800">Note Preview</h2>
-          <span className="truncate text-[11px] text-zinc-500" title={deckName || undefined}>
+          <h2 className="truncate text-sm font-semibold text-zinc-800 dark:text-zinc-300">Note Preview</h2>
+          <span className="truncate text-[11px] text-zinc-500 dark:text-zinc-400" title={deckName || undefined}>
             Selected Deck: {deckName || 'Default'}
           </span>
         </div>
         <div className='flex items-center gap-1.5'>
           {/* Model selector */}
           <div className='flex items-center gap-1 flex-shrink-0'>
-            <label className='text-xs text-zinc-500'>Model</label>
+            <label className='text-xs text-zinc-500 dark:text-zinc-400'>Model</label>
             <select
-              className='flex-shrink-0 cursor-pointer rounded-md border border-zinc-300 bg-white px-1 py-1 text-sm h-[30px]'
+              className='flex-shrink-0 cursor-pointer rounded-md border border-zinc-300 bg-white px-1 py-1 text-sm h-[30px] dark:border-zinc-950 dark:bg-[#323232] dark:text-zinc-400'
               value={draft.userForcedModel ?? 'Auto'}
               onChange={(e) => {
                 const val = e.target.value as 'Basic' | 'Cloze' | 'Auto';
@@ -184,11 +184,11 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
         </div>
       </div>
       {/* Editors */}
-      <div className='border-b border-zinc-200 flex-1 space-y-1 overflow-auto pr-1.5 pl-1.5 scrollbar'>
+      <div className='border-b border-zinc-200 flex-1 space-y-1 overflow-auto pr-1.5 pl-1.5 scrollbar dark:border-zinc-950'>
         {/* Front */}
-        <div className='rounded-xl border border-zinc-200'>
-          <div className='flex items-center justify-between border-b border-zinc-100 px-3 py-0.75'>
-            <span className='text-xs font-medium text-zinc-600'>Front</span>
+        <div className='rounded-xl border border-zinc-200 dark:border-zinc-950 dark:bg-[#323232]'>
+          <div className='flex items-center justify-between border-b border-zinc-100 px-3 py-0.75 dark:border-zinc-950'>
+            <span className='text-xs font-medium text-zinc-600 dark:text-zinc-400'>Front</span>
             <div className='flex items-center gap-2'>
               {/* Helper text */}
               {clozeDetected && (
@@ -196,17 +196,17 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
                   Cloze detected
                 </span>
               )}
-              <div className='px-1 text-[10px] text-zinc-500'>
+              <div className='px-1 text-[10px] text-zinc-500 dark:text-zinc-400'>
                 Front is required. {modelNameEffective === 'Cloze' && !clozeDetected ? 'Cloze selected but no {{cX::...}} found.' : ''}
               </div>
-              <span className='text-[10px] text-zinc-400'>
+              <span className='text-[10px] text-zinc-400 dark:text-zinc-500'>
                 {draft.frontHtml.replace(/<[^>]*>/g, '').length} chars
               </span>
             </div>
           </div>
           <div
             ref={frontRef}
-            className='min-h-[96px] px-3 py-1 text-sm outline-none'
+            className='min-h-[96px] px-3 py-1 text-sm outline-none dark:text-zinc-300 dark:caret-zinc-100'
             contentEditable
             suppressContentEditableWarning
             onInput={handleInput('front')}
@@ -214,16 +214,16 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
           />
         </div>
         {/* Back */}
-        <div className='mb-0 rounded-xl border border-zinc-200'>
-          <div className='flex items-center justify-between border-b border-zinc-100 px-3 py-0.75'>
-            <span className='text-xs font-medium text-zinc-600'>Back (optional)</span>
-            <span className='text-[10px] text-zinc-400'>
+        <div className='mb-0 rounded-xl border border-zinc-200 dark:border-zinc-950 dark:bg-[#323232]'>
+          <div className='flex items-center justify-between border-b border-zinc-100 px-3 py-0.75 dark:border-zinc-950'>
+            <span className='text-xs font-medium text-zinc-600 dark:text-zinc-400'>Back (optional)</span>
+            <span className='text-[10px] text-zinc-400 dark:text-zinc-500'>
               {draft.backHtml.replace(/<[^>]*>/g, '').length} chars
             </span>
           </div>
           <div
             ref={backRef}
-            className='min-h-[72px] px-3 py-1 text-sm outline-none'
+            className='min-h-[72px] px-3 py-1 text-sm outline-none dark:text-zinc-300 dark:caret-zinc-100'
             contentEditable
             suppressContentEditableWarning
             onInput={handleInput('back')}
@@ -233,26 +233,26 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
         {/* Tags */}
         <div className=''>
           <div className='flex items-center justify-between px-3 py-1'>
-            <span className='text-xs font-medium text-zinc-600'>Tags</span>
+            <span className='text-xs font-medium text-zinc-600 dark:text-zinc-400'>Tags</span>
             <div className='flex flex-wrap items-center gap-1'>
               {/* Signature tag editor */}
-              <div className='flex items-center gap-1 rounded-full border border-zinc-300 bg-white pl-2 pr-1'>
+              <div className='flex items-center gap-1 rounded-full border border-zinc-300 bg-white pl-2 pr-1 dark:bg-[#323232] dark:border-zinc-950 dark:text-zinc-300'>
                 <input
                   className='w-15 bg-transparent py-1 text-xs outline-none'
                   value={draft.tags[0] ?? ''}
                   onChange={(e) => setSignatureTag(e.target.value)}
                 />
-                <span className='rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-500'>signature</span>
+                <span className='rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400'>signature</span>
               </div>
               {/* Other tags */}
               {draft.tags.slice(1).map((t, idx) => (
                 <span
                   key={t + idx}
-                  className='group inline-flex items-center gap-1 rounded-full border border-zinc-300 bg-white px-2 py-1 text-xs'
+                  className='group inline-flex items-center gap-1 rounded-full border border-zinc-300 bg-white px-2 py-1 text-xs dark:border-zinc-950 dark:text-zinc-300 dark:bg-[#323232]'
                 >
                   {t}
                   <button
-                    className='text-zinc-400 hover:text-zinc-700'
+                    className='text-zinc-400 hover:text-zinc-700 dark:text-zinc-200 dark:hover:text-zinc-500'
                     onClick={() => {
                       const rest = draft.tags.slice(1).filter((x, i) => i !== idx);
                       setTags([draft.tags[0], ...rest]);
@@ -266,15 +266,15 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
               {/* Add tag */}
               {!addingTag ? (
                 <button
-                  className='rounded-full border border-dashed border-zinc-300 px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-50'
+                  className='rounded-full border border-dashed border-zinc-300 px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-50 dark:border-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-zinc-400 dark:bg-[#323232]'
                   onClick={() => setAddingTag(true)}
                 >
                   + Add tag
                 </button>
               ) : (
-                <div className='flex items-center gap-1 rounded-full border border-zinc-300 bg-white px-2 py-1'>
+                <div className='flex items-center gap-1 rounded-full border border-zinc-300 bg-white px-2 py-1 dark:bg-zinc-700 dark:border-zinc-950'>
                   <input 
-                    className='w-20 bg-transparent text-xs outline-none'
+                    className='w-20 bg-transparent text-xs outline-none dark:text-zinc-300 dark:placeholder:text-zinc-500 dark:caret-zinc-100'
                     value={newTag}
                     autoFocus
                     onChange={(e) => setNewTag(e.target.value)}
@@ -296,7 +296,7 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
                     placeholder='new tag'
                   />
                   <button
-                    className='text-xs text-zinc-600 hover:text-zinc-900'
+                    className='text-xs text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-400'
                     onClick={() => {
                       const t = newTag.trim();
                       if (t) {
@@ -309,7 +309,7 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
                     title='Add'
                   >Add</button>
                   <button
-                    className='text-xs text-zinc-400 hover:text-zinc-700'
+                    className='text-xs text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-500'
                     onClick={() => { setNewTag(''); setAddingTag(false); }}
                     title='Cancel'
                   >Cancel</button>

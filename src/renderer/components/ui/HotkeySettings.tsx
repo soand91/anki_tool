@@ -1,338 +1,592 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Button from './Button';
 
-type Mode = 'modal' | 'embedded';
-
-type Row = { id: string; label: string };
+type Row = {
+  id: string;
+  label: string;
+};
 
 const ROWS: Row[] = [
   { id: 'note.captureFront', label: 'Capture → Front' },
   { id: 'note.captureBack',  label: 'Capture → Back' },
   { id: 'note.add',          label: 'Add Note' },
   { id: 'note.undoCapture',  label: 'Undo Last Capture' },
-  { id: 'app.showWindow',    label: 'Open & Focus Window' },
+  { id: 'app.showWindow', label: 'Open & Focus Window' },
 ];
 
 type Snapshot = {
+  defaults: Record<string, string>;
+  overrides: Record<string, string>;
   effective: Record<string, string>;
-  issues?: Record<string, string | undefined>;
+  inactive: string[];
+  issues: Record<string, string | undefined>;
 };
 
-function coerceSnapshot(raw: any): Snapshot {
-  // Accept both shapes: either { effective, issues } or a plain map
-  if (raw && typeof raw === 'object' && raw.effective) {
-    return { effective: raw.effective ?? {}, issues: raw.issues ?? {} };
-  }
-  return { effective: (raw ?? {}) as Record<string, string>, issues: {} };
-}
+type Mode = 'modal' | 'embedded';
+type ResetFn = () => void | Promise<void>;
 
-const isMac = navigator.userAgent.includes('Mac');
+type Props = {
+  mode?: Mode;
+  registerReset?: (fn: ResetFn) => void;
+};
 
-function prettyAccelerator(accel: string): string {
-  if (!accel) return '';
-  return accel.split('+').map((part) => {
-    switch (part) {
-      case 'CommandOrControl':
-      case 'CmdOrCtrl':
-        return isMac ? 'Command' : 'Ctrl';
-      case 'Meta':
-        return isMac ? 'Command' : 'Meta';
-      case 'Alt':
-        return isMac ? 'Option' : 'Alt'
-      case 'Shift':
-        return 'Shift';
-      case 'Plus':
-        return '+';
-      case 'Esc':
-        return 'Esc';
-      case 'Space':
-        return 'Space';
-      default:
-        return part;
-    }
-  }).join('+');
-}
+const isMacRuntime =
+  typeof window !== 'undefined' &&
+  ((window as any).env?.isMac === true ||
+    /Mac|iPhone|iPad|iPod/.test(
+      (navigator && (navigator as any).platform) ||
+        (navigator && (navigator as any).userAgent) ||
+        ''
+    ));
 
-function formatCombo(ev: KeyboardEvent) {
-  // Build Electron-style accelerator string
-  // require at least one modifier for safety
+/**
+ * Convert a KeyboardEvent into a canonical accelerator string for storage/main.
+ * Returns null if the combo isn’t “commit-worthy”.
+ */
+function normalizeAccelFromEvent(e: KeyboardEvent): string | null {
   const mods: string[] = [];
-  if (ev.ctrlKey || ev.metaKey) mods.push('CommandOrControl');
-  if (ev.shiftKey) mods.push('Shift');
-  if (ev.altKey) mods.push('Alt');
+  if (isMacRuntime ? e.metaKey : e.ctrlKey) {
+    mods.push(isMacRuntime ? 'Command' : 'Control');
+  }
+  if (e.shiftKey) mods.push('Shift');
+  if (e.altKey) mods.push('Alt');
 
-  let key = ev.key;
+  const key = e.key;
+  if (!key) return null;
 
-  // normalize common keys to Electron's expectations
-  const alias: Record<string, string> = {
-    ' ': 'Space',
-    Enter: 'Enter',
-    Escape: 'Esc',
-    Esc: 'Esc', 
-    ArrowUp: 'Up', 
+  const isModifier =
+    key === 'Shift' || key === 'Control' || key === 'Meta' || key === 'Alt';
+  if (isModifier) return null;
+
+  const namedMap: Record<string, string> = {
+    ArrowUp: 'Up',
     ArrowDown: 'Down',
     ArrowLeft: 'Left',
-    ArrowRight: 'Right', 
-    '+': 'Plus',
-    '=': '=',
-    '-': '-',
-    '_': '-',
+    ArrowRight: 'Right',
+    ' ': 'Space',
+    Escape: 'Esc',
+    Enter: 'Enter',
+    Backspace: 'Backspace',
+    Delete: 'Delete',
+    Tab: 'Tab',
   };
 
-  if (alias[key]) key = alias[key];
+  let main = namedMap[key] ?? key;
+  if (main.length === 1) main = main.toUpperCase();
 
-  // single-letter keys: uppercase
-  if (key.length === 1) key = key.toUpperCase();
+  if (mods.length === 0) return null; // must have at least one modifier
 
-  // block pure modifier keys as a 'key'
-  const isPureModifier = ['Shift', 'Control', 'Alt', 'Meta'].includes(key);
-  if (isPureModifier) return '';
-
-  const combo = [...mods, key].join('+');
-  // disallow no-modifier combos
-  if (mods.length === 0) return '';
-  return combo;
+  return [...mods, main].join('+');
 }
 
-type Props = { mode?: Mode; registerReset?: (fn: () => Promise<void> | void) => void };
+/**
+ * Human-friendly display for an accelerator.
+ */
+function prettyAccelerator(accel: string): string {
+  if (!accel) return '';
+  return accel
+    .split('+')
+    .map(part => {
+      switch (part) {
+        case 'Command':
+        case 'Meta':
+          return isMacRuntime ? '⌘' : 'Win';
+        case 'Control':
+          return isMacRuntime ? '⌃' : 'Ctrl';
+        case 'Alt':
+          return isMacRuntime ? '⌥' : 'Alt';
+        case 'Shift':
+          return isMacRuntime ? '⇧' : 'Shift';
+        default:
+          return part;
+      }
+    })
+    .join(isMacRuntime ? '' : '+');
+}
 
-export default function HotkeySettings({ mode = 'embedded', registerReset }: Props) {
-  const api = (window as any).api;
-  const [open, setOpen] = useState(mode === 'embedded');
-  const [recording, setRecording] = useState<string | null>(null);
-  const [snapshot, setSnapshot] = useState<Snapshot>({ effective: {}, issues: {} });
-  const [pending, setPending] = useState<Record<string, string | null | undefined>>({});
-  const detachListenerRef = useRef<(() => void) | null>(null);
+function canonicalizeAccelForCompare(accel: string | null | undefined): string {
+  if (!accel) return '';
+  const parts = String(accel).split('+').map(p => p.trim()).filter(Boolean);
 
-  // Conflict helper (client-side)
-  const conflictMap = useMemo(() => {
-    const map = new Map<string, string[]>();
-    const eff = snapshot.effective || {};
-    ROWS.forEach(r => {
-      const v = (pending[r.id] ?? eff[r.id]) || '';
-      if (!v) return;
-      const list = map.get(v) ?? [];
-      list.push(r.id);
-      map.set(v, list);
-    });
-    return map;
-  }, [snapshot, pending]);
-  
-  // Open flow
-  useEffect(() => {
-    if (mode === 'embedded') {
-      (async () => {
-        try {
-          await api.settings.hotkeys.suspend(true);
-          const s = await api.settings.hotkeys.list();
-          setSnapshot(coerceSnapshot(s));
-          setPending({});
-        } catch {}
-      })();
-      const offChanged = api.settings.hotkeys.onChanged?.((s: any) => {
-        setSnapshot(coerceSnapshot(s));
-      });
-      return () => {
-        if (typeof offChanged === 'function') offChanged();
-        api.settings.hotkeys.suspend(false).catch(() => {});
-      };
-    } else {
-      // legacy: open via IPC (open-settings with section='hotkeys' OR dedicated channel)
-      const off = api.settings.onOpen?.((payload?: any) => {
-        if (payload?.section === 'hotkeys' || payload?.section === undefined) {
-          (async () => {
-            setOpen(true);
-            try {
-              await api.settings.hotkeys.suspend(true);
-              const s = await api.settings.hotkeys.list();
-              setSnapshot(coerceSnapshot(s));
-              setPending({});
-            } catch {}
-          })();
-        }
-      });
-      const offChanged = api.settings.hotkeys.onChanged?.((s: any) => {
-        setSnapshot(coerceSnapshot(s));
-      });
-      return () => {
-        if (typeof off === 'function') off();
-        if (typeof offChanged === 'function') offChanged();
-      };
+  const mods: string[] = [];
+  let main = '';
+
+  for (const part of parts) {
+    switch (part) {
+      case 'Command':
+      case 'Meta':
+      case 'CommandOrControl':
+      case 'CmdOrCtrl':
+        mods.push('CMDORCTRL'); // logical “either Cmd or Ctrl”
+        break;
+      case 'Control':
+      case 'Ctrl':
+        mods.push('CTRL');      // if you want to distinguish, otherwise also 'CMDORCTRL'
+        break;
+      case 'Alt':
+        mods.push('ALT');
+        break;
+      case 'Shift':
+        mods.push('SHIFT');
+        break;
+      default:
+        main = part;
+        break;
     }
-  }, [mode]);
+  }
 
-  // Key recorder
+  mods.sort(); // ensure stable order: ALT+CMDORCTRL+SHIFT, etc.
+  return [...mods, main].join('+');
+}
+
+// Combos you never want to allow
+const BLOCKED = new Set<string>([
+  isMacRuntime ? 'Command+Q' : 'Alt+F4',
+  isMacRuntime ? 'Command+W' : 'Control+Q',
+]);
+
+const HotkeySettings: React.FC<Props> = ({ mode = 'modal', registerReset }) => {
+  const api = (window as any).api;
+
+  const [open, setOpen] = useState(mode === 'embedded');
+  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+  const [recording, setRecording] = useState<string | null>(null);
+  const [pending, setPending] = useState<Record<string, string | null>>({});
+  const [liveCombo, setLiveCombo] = useState<string>(''); // live preview
+  const [localIssues, setLocalIssues] = useState<Record<string, string | undefined>>({});
+  const activeRowRef = useRef<HTMLTableRowElement | null>(null);
+
+  // Load + open wiring
   useEffect(() => {
-    if (!recording) return;
-    const onKeyDown = (ev: KeyboardEvent) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      const combo = formatCombo(ev);
-      if (!combo) return; // ignore invalid/no-mod combos
+    let unsubOpen: (() => void) | undefined;
+    let unsubChanged: (() => void) | undefined;
 
-      setPending(prev => ({ ...prev, [recording]: combo }));
-      setRecording(null);
-      // resume hotkeys immediately so user can keep using the app
-      api.settings.hotkeys.suspend(false).catch(() => {});
-    };
-    window.addEventListener('keydown', onKeyDown, { capture: true });
-    detachListenerRef.current = () => window.removeEventListener('keydown', onKeyDown, { capture: true } as any);
-    return () => {
-      if (detachListenerRef.current) {
-        detachListenerRef.current();
-        detachListenerRef.current = null;
+    const loadSnapshot = async () => {
+      try {
+        const s = await api.noteHotkeys.getAll();
+        setSnapshot(s);
+        setPending({});
+      } catch (err) {
+        console.error('[hotkeys] failed to load snapshot', err);
       }
     };
-  }, [recording]);
 
-  // Exposed reset function 
+    if (mode === 'embedded') {
+      setOpen(true);
+      (async () => {
+        await api.noteHotkeys.suspend(true);
+        await loadSnapshot();
+      })();
+      unsubChanged = api.noteHotkeys.onChanged((s: Snapshot) => {
+        setSnapshot(s);
+      });
+    } else {
+      unsubOpen = api.noteHotkeys.onOpenPanel(async () => {
+        setOpen(true);
+        await api.noteHotkeys.suspend(true);
+        await loadSnapshot();
+      });
+      unsubChanged = api.noteHotkeys.onChanged((s: Snapshot) => {
+        setSnapshot(s);
+      });
+    }
+
+    return () => {
+      if (typeof unsubOpen === 'function') unsubOpen();
+      if (typeof unsubChanged === 'function') unsubChanged();
+    };
+  }, [mode, api]);
+
+  // Register “reset to defaults” handler with parent Settings modal
   useEffect(() => {
     if (!registerReset) return;
     registerReset(async () => {
-      const api = (window as any).api.settings.hotkeys;
-      await api.resetAll();
-      const s = await api.list();
-      setSnapshot(coerceSnapshot(s));
+      await api.noteHotkeys.resetAll();
+
       setPending({});
+      setLocalIssues({});
+      setLiveCombo('');
+      setRecording(null);
     });
-  }, [registerReset]);
+  }, [registerReset, api]);
 
-  const effective = snapshot.effective || {};
-  const issues = snapshot.issues || {};
+  const rows = useMemo<Row[]>(() => [...ROWS], []);
 
-  // UI blocks
-  const Header = mode === 'modal' ? (
-    <div className='flex items-center justify-between border-b border-zinc-200 px-4 py-3'>
-      <div className='text-sm font-medium text-zinc-800'>Hotkeys</div>
-      <div className='flex items-center gap-2'>
-        <Button
-          variant='solid'
-          onClick={async () => {
-            await api.settings.hotkeys.resetAll();
-            const s = await api.settings.hotkeys.list();
-            setSnapshot(coerceSnapshot(s));
-            setPending({});
-          }}
-        >
-          Reset to defaults
-        </Button>
-        <Button
-          variant='outline'
-          onClick={async () => {
-            setOpen(false);
-            await api.settings.hotkeys.suspend(false);
-          }}
-        >
-          Close
-        </Button>
-      </div>
-    </div>
-  ) : null;
+  const effective = snapshot?.effective ?? {};
+  const issuesFromBackend = snapshot?.issues ?? {};
 
-  const Table = (
-    <table className='w-full text-sm'>
-      <thead>
-        <tr className='text-left text-xs text-zinc-500'>
-          <th className='py-1'>Action</th>
-          <th className='py-1'>Shortcut</th>
-          <th className='py-1 w-48'>Set</th>
-          <th className='py-1 w-28'></th>
-        </tr>
-      </thead>
-      <tbody>
-        {ROWS.map(r => {
-          const current = (pending[r.id] ?? effective[r.id]) || '';
-          const list = conflictMap.get(current) ?? [];
-          const isConflicted = !!current && list.length > 1;
-          const issue = issues[r.id];
+  const conflictMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const id of rows.map(r => r.id)) {
+      const eff = (pending[id] ?? effective[id]) as string | undefined;
+      if (!eff) continue;
+      const list = map.get(eff) ?? [];
+      list.push(id);
+      map.set(eff, list);
+    }
+    return map;
+  }, [pending, effective, rows]);
 
-          return (
-            <tr key={r.id} className='border-t border-zinc-200'>
-              <td className='py-2 min-w-[140px]'>{r.label}</td>
-              <td className='py-2 min-w-[150px] pr-3'>
-                <span
-                  className={`rounded-md border px-2 py-1 ${
-                    isConflicted ? 'border-amber-400 bg-amber-50 text-amber-700' : 'border-zinc-300 bg-white text-zinc-800'
-                  }`}
-                >
-                  {current 
-                    ? prettyAccelerator(current)
-                    : <span className='text-zinc-400'>—</span>
-                  }
-                </span>
-                {issue && <span className='ml-2 text-xs text-red-600'>{issue}</span>}
-              </td>
-              <td className='py-2 space-x-1.5'>
-                {recording === r.id ? (
-                  <span className='rounded-md border border-blue-300 bg-blue-50 px-2 py-1 text-blue-700'>
-                    Press modifiers then a key…
-                  </span>
-                ) : (
-                  <Button
-                    variant='solid'
-                    onClick={async () => {
-                      await api.settings.hotkeys.suspend(true);
-                      setRecording(r.id);
-                    }}
-                  >
-                    Record
-                  </Button>
-                )}
-                <Button
-                  variant='outline'
-                  onClick={() => setPending(prev => ({ ...prev, [r.id]: null }))}
-                  title='Revert to default'
-                >
-                  Revert
-                </Button>
-              </td>
-              <td className='py-2 text-right'>
-                <Button
-                  variant='outline'
-                  disabled={isConflicted}
-                  onClick={async () => {
-                    const accel = pending[r.id] ?? null; // null => default
-                    const res = await api.settings.hotkeys.set(r.id, accel);
-                    if (!res?.ok) {
-                      alert(`Failed: ${res?.reason ?? 'unknown'}`);
-                    }
-                    const s = await api.settings.hotkeys.list();
-                    setSnapshot(coerceSnapshot(s));
-                    setPending(prev => ({ ...prev, [r.id]: undefined }));
-                  }}
-                >
-                  Save
-                </Button>
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
-  );
+  const snapshotRef = useRef(snapshot);
+  const pendingRef = useRef(pending);
+  
+  useEffect(() => {
+    snapshotRef.current = snapshot;
+  }, [snapshot]);
 
-  if (mode === 'embedded') {
-    return (
-      <div className='px-1 py-1'>
-        <div className='max-h-[60vh] overflow-auto'>{Table}</div>
-        <div className='mt-2 text-[11px] text-zinc-500'>
-          Require at least one modifier (Ctrl/Cmd/Alt/Shift). Some system shortcuts may be blocked by the OS.
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    pendingRef.current = pending;
+  }, [pending]);
 
-  // modal mode
+  // Recording: keyboard + click-outside
+  useEffect(() => {
+    if (!recording) {
+      setLiveCombo('');
+      return;
+    }
+    const currentId = recording;
+    if (!currentId) {
+      setLiveCombo('');
+      return;
+    }
+
+    const onKeyDown = async (e: KeyboardEvent) => {
+      // ESC = cancel recording
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        setRecording(null);
+        setLiveCombo('');
+        setLocalIssues(prev => ({ ...prev, [recording]: undefined }));
+        return;
+      }
+
+      // Delete / Backspace = revert to default
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        e.stopPropagation();
+        setPending(prev => ({ ...prev, [recording]: null }));
+        setRecording(null);
+        setLiveCombo('');
+        setLocalIssues(prev => ({ ...prev, [recording]: undefined }));
+        return;
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      // Build preview first (even for invalid combos)
+      const mods: string[] = [];
+      if (isMacRuntime ? e.metaKey : e.ctrlKey) {
+        mods.push(isMacRuntime ? 'Command' : 'Control');
+      }
+      if (e.shiftKey) mods.push('Shift');
+      if (e.altKey) mods.push('Alt');
+
+      const key = e.key;
+      const isModifierOnly =
+        key === 'Shift' || key === 'Control' || key === 'Meta' || key === 'Alt';
+
+      const namedMap: Record<string, string> = {
+        ArrowUp: 'Up',
+        ArrowDown: 'Down',
+        ArrowLeft: 'Left',
+        ArrowRight: 'Right',
+        ' ': 'Space',
+        Escape: 'Esc',
+        Enter: 'Enter',
+        Backspace: 'Backspace',
+        Delete: 'Delete',
+        Tab: 'Tab',
+      };
+
+      let main = namedMap[key] ?? key;
+      if (main.length === 1) main = main.toUpperCase();
+
+      const previewParts = isModifierOnly ? mods : [...mods, main];
+      const previewAccel = previewParts.length ? previewParts.join('+') : '';
+      setLiveCombo(previewAccel);
+
+      const hasAnyModifier = mods.length > 0;
+      if (!hasAnyModifier) {
+        setLocalIssues(prev => ({
+          ...prev,
+          [recording]:
+            'Shortcuts must include Ctrl/Cmd, Alt, or Shift.',
+        }));
+        return;
+      }
+
+      if (isModifierOnly) {
+        setLocalIssues(prev => ({
+          ...prev,
+          [recording]: 'Press a non-modifier key to finish the shortcut.',
+        }));
+        return;
+      }
+
+      const accel = normalizeAccelFromEvent(e);
+      if (!accel) {
+        setLocalIssues(prev => ({
+          ...prev,
+          [recording]: 'This shortcut is invalid.',
+        }));
+        return;
+      }
+
+      const accelNorm = canonicalizeAccelForCompare(accel);
+
+      const dupeOwners = rows
+        .filter(r => r.id !== recording)
+        .filter(r => {
+          const originalAssignment = snapshotRef.current?.effective[r.id];
+          const pendingAssignment = pendingRef.current[r.id];
+
+          const existing = pendingAssignment ?? originalAssignment;
+          if (!existing) return false;
+
+          const existingNorm = canonicalizeAccelForCompare(existing);
+          return existingNorm === accelNorm;
+        });
+
+      if (dupeOwners.length > 0) {
+        const names = dupeOwners.map(r => r.label).join(', ');
+        setLocalIssues(prev => ({
+          ...prev,
+          [recording]: `Already used by: ${names}`,
+        }));
+        return;
+      }
+
+      if (BLOCKED.has(accel)) {
+        setLocalIssues(prev => ({
+          ...prev,
+          [recording]: 'This shortcut is reserved by the app or OS.',
+        }));
+        return;
+      }
+
+      // Good combo – commit
+      setLocalIssues(prev => ({ ...prev, [recording]: undefined }));
+      setPending(prev => ({ ...prev, [recording]: accel }));
+      setRecording(null);
+      setLiveCombo('');
+    };
+
+    const onClick = (ev: MouseEvent) => {
+      const rowEl = activeRowRef.current;
+      if (!rowEl) return;
+      const target = ev.target as HTMLElement;
+      if (!rowEl.contains(target)) {
+        setRecording(null);
+        setLiveCombo('');
+        setLocalIssues(prev => ({ ...prev, [currentId]: undefined }));
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown, { capture: true });
+    document.addEventListener('mousedown', onClick, true);
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown, { capture: true } as any);
+      document.removeEventListener('mousedown', onClick, true);
+    };
+  }, [recording, api]);
+
   if (!open) return null;
+
   return (
-    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40'>
-      <div className='w-[560px] max-w-[90vw] rounded-xl bg-white shadow-xl'>
-        {Header}
-        <div className='max-h-[70vh] overflow-auto px-4 py-3'>{Table}</div>
-        <div className='border-t border-zinc-200 px-4 py-2 text-[11px] text-zinc-500'>
-          Require at least one modifier (Ctrl/Cmd/Alt/Shift). Some system shortcuts may be blocked by the OS.
+    <div
+      className={
+        mode === 'modal'
+          ? 'fixed inset-0 z-50 flex items-center justify-center bg-black/40'
+          : ''
+      }
+    >
+      <div
+        className={
+          mode === 'modal'
+            ? 'w-[560px] max-w-[90vw] rounded-xl bg-white shadow-xl dark:bg-[#323232]'
+            : ''
+        }
+      >
+        {mode === 'modal' && (
+          <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-950">
+            <div className="text-sm font-medium text-zinc-800 dark:text-zinc-300">Hotkeys</div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="solid"
+                onClick={async () => {
+                  await api.noteHotkeys.resetAll();
+                  const s = await api.noteHotkeys.getAll();
+                  setSnapshot(s);
+                  setPending({});
+                  setLocalIssues({});
+                  setLiveCombo('');
+                  setRecording(null);
+                }}
+              >
+                Reset to defaults
+              </Button>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  setOpen(false);
+                  setRecording(null);
+                  setLiveCombo('');
+                  setLocalIssues({});
+                  await api.noteHotkeys.suspend(false);
+                }}
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <div
+          className={
+            mode === 'modal'
+              ? 'max-h-[70vh] overflow-auto px-4 py-3'
+              : ''
+          }
+        >
+          <table className="table-fixed w-[572px] text-sm">
+            <thead>
+              <tr className="text-left text-xs text-zinc-500 dark:text-zinc-300">
+                <th className="w-5/23 py-1">Action</th>
+                <th className="w-6/23 py-1">Shortcut</th>
+                <th className="w-10/23 py-1">Set</th>
+                <th className="w-2/23 py-1" />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(r => {
+                const backendIssue = issuesFromBackend[r.id];
+                const localIssue = localIssues[r.id];
+                const displayIssue = backendIssue || localIssue;
+
+                const eff = pending[r.id] ?? effective[r.id] ?? '';
+                const conflictFor = conflictMap.get(eff) ?? [];
+                const isConflicted = eff && conflictFor.length > 1;
+
+                const isRecordingRow = recording === r.id;
+                const currentValue = isRecordingRow
+                  ? liveCombo || eff
+                  : eff;
+
+                const hasIssue = isConflicted || !!displayIssue;
+
+                return (
+                  <tr
+                    key={r.id}
+                    ref={isRecordingRow ? activeRowRef : null}
+                    className="border-t border-zinc-200 dark:border-zinc-400"
+                  >
+                    <td className="py-2 min-w-[140px] dark:text-zinc-300">{r.label}</td>
+                    <td className="py-2 min-w-[150px] pr-3 align-top">
+                      <div className="flex flex-col gap-1">
+                        <span
+                          className={`rounded-md border px-2 py-1 h-[30px] ${
+                            hasIssue
+                              ? 'border-amber-400 bg-amber-50 text-amber-700'
+                              : 'border-zinc-300 bg-white text-zinc-800 dark:border-zinc-950 dark:bg-zinc-700 dark:text-zinc-400'
+                          }`}
+                        >
+                          {currentValue ? (
+                            prettyAccelerator(currentValue)
+                          ) : (
+                            <span className="text-zinc-400">
+                              {isRecordingRow ? 'Press keys…' : '—'}
+                            </span>
+                          )}
+                        </span>
+                        {displayIssue && (
+                          <span className="text-[11px] text-red-600 leading-snug">
+                            {displayIssue}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-2 space-x-1.5 align-top">
+                      {isRecordingRow ? (
+                        <span className="inline-flex items-center rounded-md border border-blue-300 bg-blue-50 px-2 py-1 text-xs text-blue-700 h-[30px]">
+                          Press Esc to cancel, Delete to revert.
+                        </span>
+                      ) : (
+                        <>
+                          <Button
+                            variant="solid"
+                            onClick={async () => {
+                              await api.noteHotkeys.suspend(true);
+                              setRecording(r.id);
+                              setLiveCombo('');
+                              setLocalIssues(prev => ({
+                                ...prev,
+                                [r.id]: undefined,
+                              }));
+                            }}
+                          >
+                            {isRecordingRow ? 'Recording…' : 'Record'}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setPending(prev => ({ ...prev, [r.id]: null }));
+                              setLocalIssues(prev => ({ ...prev, [r.id]: undefined }));
+                              if (recording === r.id) {
+                                setRecording(null);
+                                setLiveCombo('');
+                              }
+                            }}
+                            title="Revert to default"
+                          >
+                            Revert
+                          </Button>
+                        </>
+                      )}
+                    </td>
+                    <td className="py-2 text-right align-top">
+                      <Button
+                        variant="outline"
+                        disabled={isConflicted || !!localIssues[r.id]}
+                        onClick={async () => {
+                          const accel = pending[r.id] ?? null;
+                          const res = await api.noteHotkeys.set(r.id, accel);
+                          if (!res?.ok) {
+                            alert(`Failed: ${res?.reason ?? 'unknown'}`);
+                            return;
+                          }
+                          const s = await api.noteHotkeys.getAll();
+                          setSnapshot(s);
+                          setPending(prev => ({
+                            ...prev,
+                            [r.id]: undefined as any,
+                          }));
+                          setLocalIssues(prev => ({
+                            ...prev,
+                            [r.id]: undefined,
+                          }));
+                        }}
+                      >
+                        Save
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
+
+        {mode === 'modal' && (
+          <div className="border-t border-zinc-200 px-4 py-2 text-[11px] text-zinc-500">
+            Require at least one modifier (Ctrl/Cmd, Alt, or Shift). Some system shortcuts may be blocked by the OS.
+          </div>
+        )}
       </div>
     </div>
   );
-}
+};
+
+export default HotkeySettings;

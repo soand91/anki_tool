@@ -18,15 +18,15 @@ type StoreShape = {
 
 const isMac = process.platform === 'darwin';
 const DEFAULTS: HotkeyConfig = {
-  'app.showWindow'   : isMac ? 'Command+Shift+Alt+W' : 'Ctrl+Shift+Alt+W',
-  'note.captureFront': isMac ? 'Command+Shift+Alt+A' : 'Ctrl+Shift+Alt+A', 
-  'note.captureBack' : isMac ? 'Command+Shift+Alt+S' : 'Ctrl+Shift+Alt+S',
-  'note.add'         : isMac ? 'Command+Shift+Alt+X' : 'Ctrl+Shift+Alt+X',
-  'note.undoCapture' : isMac ? 'Command+Shift+Alt+Z' : 'Ctrl+Shift+Alt+Z',
+  'app.showWindow'   : isMac ? 'Cmd+Shift+Alt+W' : 'Ctrl+Shift+Alt+W',
+  'note.captureFront': isMac ? 'Cmd+Shift+Alt+A' : 'Ctrl+Shift+Alt+A', 
+  'note.captureBack' : isMac ? 'Cmd+Shift+Alt+S' : 'Ctrl+Shift+Alt+S',
+  'note.add'         : isMac ? 'Cmd+Shift+Alt+X' : 'Ctrl+Shift+Alt+X',
+  'note.undoCapture' : isMac ? 'Cmd+Shift+Alt+Z' : 'Ctrl+Shift+Alt+Z',
 };
 
 const BLOCKED = new Set([
-  'Alt+F4', 'Command+Q', 'Ctrl+Q', 'Command+W', 'Ctrl+W'
+  'Alt+F4', 'Cmd+Q', 'Ctrl+Q', 'Cmd+W', 'Ctrl+W'
 ]);
 
 const STORE_PATH = path.join(app.getPath('userData'), 'hotkeys.json');
@@ -61,14 +61,15 @@ function normalizeAccelerator(accel: string): string {
   // tokenise either by '+' or by camel-ish/char tokens
   const parts = s.includes('+')
     ? s.split('+')
-    : (s.match(/(Command|Control|Ctrl|Alt|Option|Shift|Meta|[A-Z][a-z]+|[A-Z]|\d+|F\d{1,2}|Enter|Tab|Backspace|Delete|Escape|Esc|Space|Up|Down|Left|Right)/g) || []);
+    : (s.match(/(Command|Cmd|Control|Ctrl|Alt|Option|Shift|Meta|[A-Z][a-z]+|[A-Z]|\d+|F\d{1,2}|Enter|Tab|Backspace|Delete|Escape|Esc|Space|Up|Down|Left|Right)/g) || []);
   const norm = parts
     .map(p => (p === 'Control' ? 'Ctrl' : p)) // unify Control -> Ctrl
+    .map(p => (p === 'Command' ? 'Cmd' : p)) // unify Command -> Cmd
     .map(p => p.length === 1 ? p.toUpperCase() : (p[0].toUpperCase() + p.slice(1)))
     .join('+');
 
   if (process.platform !== 'darwin') {
-    return norm.replace(/^Command\+/, 'Ctrl+').replace(/\+Command\+/g, '+Ctrl+');
+    return norm.replace(/^Cmd\+/, 'Ctrl+').replace(/\+Cmd\+/g, '+Ctrl+');
   }
   return norm;
 }

@@ -98,8 +98,13 @@ const settings = {
     return () => ipcRenderer.removeListener(channel, handler);
   },
   prefs: {
-    get: (key: 'minimizeToTray') => ipcRenderer.invoke('prefs:get', key),
-    set: (key: 'minimizeToTray', value: boolean) => ipcRenderer.invoke('prefs:set', key, value),
+    get: (key: 'minimizeToTray' | 'startMinimized' | 'launchOnStartup' | 'themeMode') => 
+      ipcRenderer.invoke('prefs:get', key),
+    set: (
+      key: 'minimizeToTray' | 'startMinimized' | 'launchOnStartup' | 'themeMode', 
+      value: any
+    ) => 
+      ipcRenderer.invoke('prefs:set', key, value),
   },
   hotkeys: {
     // proxy to existing hotkey endpoints so renderer can use one place

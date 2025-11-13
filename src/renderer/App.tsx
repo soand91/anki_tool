@@ -1,5 +1,6 @@
 // src/renderer/App.tsx
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
+import { applyTheme, ThemeMode } from './components/ui/theme'
 import LiveHealthPip from './components/health/LiveHealthPip'
 import { useIdleSleep } from './hooks/useIdleSleep'
 import { useHealthChecks } from './hooks/useHealthChecks'
@@ -14,6 +15,21 @@ import SettingsModal from './components/ui/SettingsModal'
 import HealthModalHost from './components/health/HealthModalHost'
 
 export function App() {
+  useEffect(() => {
+    const api = (window as any).api;
+    (async () => {
+      try {
+        const stored = await api.settings?.prefs?.get('themeMode');
+        const m: ThemeMode = 
+          stored === 'light' || stored === 'dark' || stored === 'system'
+            ? stored
+            : 'system';
+        applyTheme(m);
+      } catch {
+        applyTheme('system');
+      }
+    })();
+  }, []);
   useIdleSleep({ idleMs: 3 * 60_000, pollIntervalMs: 8000 })
   useNoteCapture();
 
@@ -55,7 +71,7 @@ export function App() {
   return (
     <div
       ref={containerRef}
-      className='fixed inset-0 flex flex-col md:flex-row gap-1.5 h-screen overflow-hidden border-t border-zinc-200'
+      className='fixed inset-0 flex flex-col md:flex-row gap-1.5 h-screen overflow-hidden border-t border-zinc-200 dark:bg-zinc-800'
       style={{
         display: 'flex',
         flexDirection: 'row',
@@ -67,7 +83,7 @@ export function App() {
       {/* LEFT PANEL */}
       <div
         ref={leftRef}
-        className='h-full overflow-hidden relative flex flex-none shrink-0'
+        className='h-full overflow-hidden relative flex flex-none shrink-0 dark:bg-neutral-800 dark:border-zinc-950'
         style={{ width: `${sizes.leftPanel}%` }}
       >
         <div className='flex-1 flex flex-col min-w-0'>
@@ -82,7 +98,7 @@ export function App() {
         onMouseDown={initResizeLeft}
       />
       {/* RIGHT PANEL */}
-      <div className='border-l border-zinc-200 flex flex-auto min-w-0 flex-col overflow-hidden'>
+      <div className='border-l border-zinc-200 flex flex-auto min-w-0 flex-col overflow-hidden dark:bg-neutral-800 dark:border-zinc-950'>
         {/* TOP-RIGHT */}
         <div className='overflow-hidden' style={{ height: `${sizes.topRightPanel}%` }}>
           {/* <div className='flex items-center justify-between px-3 py-1 border-b border-zinc-200'>
@@ -125,7 +141,9 @@ export function App() {
           align-items: center;
           justify-content: center;
         }
+        .dark .resize-handle { background-color: #323232; }
         .resize-handle.active { background-color: #d1d5db; }
+        .dark .resize-handle.active { background-color: gray; }
         .resize-handle.horizontal { cursor: col-resize; width: 8px; }
         .resize-handle.vertical { cursor: row-resize; height: 8px; }
         .resize-handle::after {
@@ -138,6 +156,9 @@ export function App() {
         }
         .resize-handle.active.snapped::after {
           background-color: #3b82f6
+        }
+        .dark .resize-handle.active.snapped::after {
+          background-color: black
         }
         .resize-handle.horizontal::after { width: 2px; height: 60%; }
         .resize-handle.vertical::after { height: 2px; width: 60%; }

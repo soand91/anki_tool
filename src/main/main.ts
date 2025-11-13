@@ -39,6 +39,12 @@ if (!single) {
 
     mainWindow = createMainWindow();
 
+    // start minimized: hide to tray if enabled
+    if (mainWindow && prefs.getStartMinimized()) {
+      mainWindow.setSkipTaskbar(true);
+      mainWindow.hide();
+    }
+
     // window policy: close/minimize => tray 
     if (mainWindow) {
       // hide on window "X" unless actually quitting
