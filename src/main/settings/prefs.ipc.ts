@@ -8,6 +8,8 @@ export function registerPrefsIpc() {
       case 'startMinimized': return prefs.getStartMinimized();
       case 'launchOnStartup': return prefs.getLaunchOnStartup();
       case 'themeMode': return prefs.getThemeMode();
+      case 'panelLayoutPreset': return prefs.getPanelLayoutPreset();
+      case 'signatureTag': return prefs.getSignatureTag();
       default: throw new Error(`Unknown prefs key: ${key}`);
     }
   });
@@ -23,6 +25,10 @@ export function registerPrefsIpc() {
         const mode = value as ThemeMode;
         return prefs.setThemeMode(mode);
       };
+      case 'panelLayoutPreset':
+        return prefs.setPanelLayoutPreset(value);
+      case 'signatureTag':
+        return prefs.setSignatureTag(String(value));
       default: throw new Error(`Unknown prefs key: ${key}`);
     }
   });

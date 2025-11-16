@@ -23,6 +23,11 @@ export function useResizablePanels(opts?: {
 
   const [isSnapped, setIsSnapped] = useState<{ left: boolean; topRight: boolean }>({ left: true, topRight: true });
 
+  useEffect(() => {
+    setSizes({ ...defaultSizes });
+    setIsSnapped({ left: true, topRight: true });
+  }, [defaultSizes.leftPanel, defaultSizes.topRightPanel]);
+
   const resizeLeft = useCallback((e: MouseEvent) => {
     if (!containerRef.current || isResizingRef.current !== 'left') return;
     const rect = containerRef.current.getBoundingClientRect();

@@ -14,7 +14,6 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
     clozeDetected,
     setField,
     setTags,
-    setSignatureTag,
     setModelName,
     addMedia,
     deleteMedia,
@@ -184,9 +183,9 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
         </div>
       </div>
       {/* Editors */}
-      <div className='border-b border-zinc-200 flex-1 space-y-1 overflow-auto pr-1.5 pl-1.5 scrollbar dark:border-zinc-950'>
+      <div className='flex flex-col border-b border-zinc-200 flex-1 space-y-1 overflow-auto pr-1 pl-1.5 scrollbar dark:border-zinc-950'>
         {/* Front */}
-        <div className='rounded-xl border border-zinc-200 dark:border-zinc-950 dark:bg-[#323232]'>
+        <div className='flex-1 rounded-xl border border-zinc-200 dark:border-zinc-950 dark:bg-[#323232]'>
           <div className='flex items-center justify-between border-b border-zinc-100 px-3 py-0.75 dark:border-zinc-950'>
             <span className='text-xs font-medium text-zinc-600 dark:text-zinc-400'>Front</span>
             <div className='flex items-center gap-2'>
@@ -214,7 +213,7 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
           />
         </div>
         {/* Back */}
-        <div className='mb-0 rounded-xl border border-zinc-200 dark:border-zinc-950 dark:bg-[#323232]'>
+        <div className='flex-1 mb-0 rounded-xl border border-zinc-200 dark:border-zinc-950 dark:bg-[#323232]'>
           <div className='flex items-center justify-between border-b border-zinc-100 px-3 py-0.75 dark:border-zinc-950'>
             <span className='text-xs font-medium text-zinc-600 dark:text-zinc-400'>Back (optional)</span>
             <span className='text-[10px] text-zinc-400 dark:text-zinc-500'>
@@ -231,17 +230,15 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
           />
         </div>
         {/* Tags */}
-        <div className=''>
-          <div className='flex items-center justify-between px-3 py-1'>
+        <div className='flex-shrink-0 min-h-[34px]'>
+          <div className='flex items-center justify-between pl-3 py-1'>
             <span className='text-xs font-medium text-zinc-600 dark:text-zinc-400'>Tags</span>
             <div className='flex flex-wrap items-center gap-1'>
               {/* Signature tag editor */}
               <div className='flex items-center gap-1 rounded-full border border-zinc-300 bg-white pl-2 pr-1 dark:bg-[#323232] dark:border-zinc-950 dark:text-zinc-300'>
-                <input
-                  className='w-15 bg-transparent py-1 text-xs outline-none'
-                  value={draft.tags[0] ?? ''}
-                  onChange={(e) => setSignatureTag(e.target.value)}
-                />
+                <span className='w-15 bg-transparent py-1 text-xs outline-none'>
+                  {draft.tags[0] ?? ''}
+                </span>
                 <span className='rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400'>signature</span>
               </div>
               {/* Other tags */}

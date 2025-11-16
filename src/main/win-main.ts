@@ -14,8 +14,8 @@ function getPreloadPath() {
 
 export function createMainWindow() {
   const win = new BrowserWindow({
-    width: 900,
-    height: 600,
+    width: 950,
+    height: 700,
     show: true,
     webPreferences: {
       preload: getPreloadPath(),

@@ -4,13 +4,16 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
+export type PanelLayoutPreset = 'balanced' | 'wideDecks' | 'wideNotes';
 
 type Prefs = {
   version: 1;
   minimizeToTray: boolean;
   startMinimized: boolean;
   launchOnStartup: boolean;
-  themeMode: ThemeMode
+  themeMode: ThemeMode;
+  panelLayoutPreset: PanelLayoutPreset;
+  signatureTag: string;
 };
 
 const STORE_PATH = path.join(app.getPath('userData'), 'prefs.json');
@@ -20,6 +23,8 @@ function readStore(): Prefs {
     const txt = fs.readFileSync(STORE_PATH, 'utf-8');
     const obj = JSON.parse(txt);
     if (obj && obj.version === 1) {
+      const rawSig = typeof obj.signatureTag === 'string' ? obj.signatureTag : '';
+      const signatureTag = rawSig.trim().length > 0 ? rawSig.trim() : 'anki_tool';
       // ensure defaults for any future keys
       return {
         version: 1,
@@ -27,6 +32,8 @@ function readStore(): Prefs {
         startMinimized: obj.startMinimized ?? false,
         launchOnStartup: obj.launchOnStartup ?? false,
         themeMode: obj.themeMode ?? 'system',
+        panelLayoutPreset: obj.panelLayoutPreset ?? 'balanced',
+        signatureTag,
       }
     }
   } catch {}
@@ -36,6 +43,8 @@ function readStore(): Prefs {
     startMinimized: false,
     launchOnStartup: false,
     themeMode: 'system',
+    panelLayoutPreset: 'balanced',
+    signatureTag: 'anki_tool',
   };
 }
 
@@ -81,6 +90,26 @@ export const prefs = {
   setThemeMode(value: unknown) {
     if (value !== 'system' && value !== 'light' && value !== 'dark') return;
     cache = { ...cache, themeMode: value};
+    writeStore(cache);
+  },
+  getPanelLayoutPreset(): PanelLayoutPreset {
+    return cache.panelLayoutPreset ?? 'balanced';
+  },
+  setPanelLayoutPreset(p: PanelLayoutPreset) {
+    cache = { ...cache, panelLayoutPreset: p };
+    writeStore(cache);
+  },
+  getSignatureTag(): string {
+    return cache.signatureTag && cache.signatureTag.trim().length > 0
+      ? cache.signatureTag.trim()
+      : 'anki_tool';
+  },
+  setSignatureTag(tag: string) {
+    const clean = String(tag ?? '').trim();
+    cache = {
+      ...cache,
+      signatureTag: clean || 'anki_tool',
+    };
     writeStore(cache);
   },
 };

@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from "electron";
 import type { HealthCheckId, HealthCheckResult, HealthReport } from '../shared/health/types';
+import type { HistoryFilter, HistorySnapshot } from "../shared/history/types";
 
 const health = {
   healthCheck: (id: HealthCheckId): Promise<HealthCheckResult> => {
@@ -70,6 +71,10 @@ const note = {
     ipcRenderer.on('note:undoCapture', wrapped);
     return () => ipcRenderer.off('note:undoCapture', wrapped);
   },
+  openInBrowserByNoteId: (noteId: number): Promise<{ ok: boolean }> => 
+    ipcRenderer.invoke('anki:guiBrowseNote', noteId),
+  openInBrowserByQuery: (query: string): Promise<{ ok: boolean }> => 
+    ipcRenderer.invoke('anki:guiBrowseQuery', query),
 }
 
 const noteHotkeys = {
@@ -98,13 +103,25 @@ const settings = {
     return () => ipcRenderer.removeListener(channel, handler);
   },
   prefs: {
-    get: (key: 'minimizeToTray' | 'startMinimized' | 'launchOnStartup' | 'themeMode') => 
-      ipcRenderer.invoke('prefs:get', key),
+    get: (
+      key: 
+        | 'minimizeToTray' 
+        | 'startMinimized' 
+        | 'launchOnStartup' 
+        | 'themeMode' 
+        | 'panelLayoutPreset'
+        | 'signatureTag'
+    ) => ipcRenderer.invoke('prefs:get', key),
     set: (
-      key: 'minimizeToTray' | 'startMinimized' | 'launchOnStartup' | 'themeMode', 
+      key: 
+        | 'minimizeToTray' 
+        | 'startMinimized' 
+        | 'launchOnStartup' 
+        | 'themeMode' 
+        | 'panelLayoutPreset'
+        | 'signatureTag',
       value: any
-    ) => 
-      ipcRenderer.invoke('prefs:set', key, value),
+    ) => ipcRenderer.invoke('prefs:set', key, value),
   },
   hotkeys: {
     // proxy to existing hotkey endpoints so renderer can use one place
@@ -121,6 +138,24 @@ const settings = {
   },
 };
 
+const history = {
+  get(filter?: HistoryFilter): Promise<HistorySnapshot> {
+    return ipcRenderer.invoke('history:get', filter);
+  },
+  clear(): Promise<{ ok: boolean }> {
+    return ipcRenderer.invoke('history:clear');
+  },
+  refresh(maxEntries?: number): Promise<{ ok: boolean }> {
+    return ipcRenderer.invoke('history:refresh', maxEntries);
+  },
+  onUpdate(handler: (payload: { noteId: number; deckName: string; createdAt: number }) => void) {
+    const channel = 'history:updated';
+    const wrapped = (_e: IpcRendererEvent, payload: any) => handler(payload);
+    ipcRenderer.on(channel, wrapped);
+    return () => ipcRenderer.off(channel, wrapped);
+  },
+};
+
 console.log('[preload] loaded');
 
 contextBridge.exposeInMainWorld('api', {
@@ -129,6 +164,7 @@ contextBridge.exposeInMainWorld('api', {
   note,
   noteHotkeys,
   settings,
+  history,
 });
 
 contextBridge.exposeInMainWorld('env', {

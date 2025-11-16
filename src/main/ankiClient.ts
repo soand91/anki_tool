@@ -13,6 +13,29 @@ class AnkiConnectError extends Error {
   }
 }
 
+export interface AnkiNoteInfo {
+  noteId: number;
+  cards: number[];
+}
+
+export interface AnkiCardInfo {
+  cardId: number;
+  noteId: number;
+  deckName: string;
+}
+
+export async function notesInfo(noteIds: number[]): Promise<AnkiNoteInfo[]> {
+  if (!Array.isArray(noteIds) || noteIds.length === 0) return [];
+  const result = await ankiCall<AnkiNoteInfo[]>('notesInfo', { notes: noteIds });
+  return Array.isArray(result) ? result : [];
+}
+
+export async function cardsInfo(cardIds: number[]): Promise<AnkiCardInfo[]> {
+  if (!Array.isArray(cardIds) || cardIds.length === 0) return [];
+  const result = await ankiCall<AnkiCardInfo[]>('cardsInfo', { cards: cardIds });
+  return Array.isArray(result) ? result : [];
+}
+
 function withTimeout(ms: number) {
   const ac = new AbortController();
   const id = setTimeout(() => ac.abort(), ms);
@@ -109,6 +132,25 @@ export async function addNote(args: AddNoteArgs): Promise<number> {
     throw new AnkiConnectError('addNote returned null (duplicate or invalid model/fields).');
   }
   return result;
+}
+
+export async function getCardsFromNotes(noteIds: number[]): Promise<number[]> {
+  if (!Array.isArray(noteIds) || noteIds.length === 0) {
+    return [];
+  }
+  const result = await ankiCall<number[]>('getCardsFromNotes', { notes: noteIds });
+  if (!Array.isArray(result)) {
+    return [];
+  }
+  return result;
+}
+
+export async function guiBrowse(query: string): Promise<void> {
+  const trimmed = query.trim();
+  if (!trimmed) {
+    throw new AnkiConnectError('guiBrowse query must be a non-empty string');
+  }
+  await ankiCall<null>('guiBrowse', { query: trimmed });
 }
 
 export async function storeMediaFile(name: string, data: string): Promise<string> {

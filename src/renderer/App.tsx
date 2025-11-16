@@ -5,16 +5,81 @@ import LiveHealthPip from './components/health/LiveHealthPip'
 import { useIdleSleep } from './hooks/useIdleSleep'
 import { useHealthChecks } from './hooks/useHealthChecks'
 import { useResizablePanels } from './hooks/useResizablePanels'
-import HealthModal from './components/health/HealthModal'
 import DeckDisplay from './components/deck/DeckDisplay'
-import type { HealthStatus } from '../shared/health/types'
 import { useDeckLifecycle } from './hooks/useDeckLifecycle'
 import NotePreviewEditor from './components/note/NotePreviewEditor'
 import { useNoteCapture } from './hooks/useNoteCapture'
 import SettingsModal from './components/ui/SettingsModal'
 import HealthModalHost from './components/health/HealthModalHost'
+import { PanelLayoutPreset } from '../main/settings/prefs.store'
+import { HistoryPanel } from './components/history/HistoryPanel'
 
 export function App() {
+  useIdleSleep({ idleMs: 3 * 60_000, pollIntervalMs: 8000 });
+  const {
+    rows,
+    overall,
+    anyFailed,
+    allDone,
+    startedAt,
+    finishedAt,
+    showHealthModal,
+    setShowHealthModal,
+    modalDefaultLive,
+    setLivePref,
+    runAllChecks
+  } = useHealthChecks();
+
+  type PanelSizes = {
+    leftPanel: number,
+    topRightPanel: number,
+  };
+
+  function getDefaultsForPreset(preset: PanelLayoutPreset | null | undefined): PanelSizes {
+    switch (preset) {
+      case 'wideDecks':
+        return { leftPanel: 40, topRightPanel: 55 }
+      case 'wideNotes':
+        return { leftPanel: 25, topRightPanel: 70 }
+      case 'balanced':
+      default:
+        return { leftPanel: 30, topRightPanel: 55 }
+    }
+  };
+
+  const [panelDefaults, setPanelDefaults] = useState<PanelSizes>(() => getDefaultsForPreset('balanced'));
+
+  useEffect(() => {
+    const api = (window as any).api;
+    (async () => {
+      try {
+        const stored = await api.settings?.prefs?.get('panelLayoutPreset');
+        const preset: PanelLayoutPreset = 
+          stored === 'wideDecks' || stored === 'wideNotes' || stored === 'balanced'
+            ? stored
+            : 'balanced';
+        setPanelDefaults(getDefaultsForPreset(preset));
+      } catch {
+        setPanelDefaults(getDefaultsForPreset('balanced'));
+      }
+    })();
+  }, []);
+  
+  const {
+    containerRef,
+    leftRef,
+    sizes,
+    defaultSizes,
+    snapThresholdPx: snapThreshold,
+    isResizing,
+    initResizeLeft,
+    initResizeTopRight,
+    isSnapped,
+  } = useResizablePanels({
+    defaultSizes: panelDefaults ,
+    snapThresholdPx: 10
+  })
+
   useEffect(() => {
     const api = (window as any).api;
     (async () => {
@@ -30,40 +95,7 @@ export function App() {
       }
     })();
   }, []);
-  useIdleSleep({ idleMs: 3 * 60_000, pollIntervalMs: 8000 })
   useNoteCapture();
-
-  // const [showHealthModal, setShowHealthModal] = useState(false);
-
-  const {
-    rows,
-    overall,
-    anyFailed,
-    allDone,
-    startedAt,
-    finishedAt,
-    showHealthModal,
-    setShowHealthModal,
-    modalDefaultLive,
-    setLivePref,
-    runAllChecks
-  } = useHealthChecks()
-
-  const {
-    containerRef,
-    leftRef,
-    sizes,
-    defaultSizes,
-    snapThresholdPx: snapThreshold,
-    isResizing,
-    initResizeLeft,
-    initResizeTopRight,
-    isSnapped,
-  } = useResizablePanels({
-    defaultSizes: { leftPanel: 30, topRightPanel: 60 },
-    snapThresholdPx: 10
-  })
-
   useDeckLifecycle();
 
   const ankiconnectHealthy = overall !== 'error';
@@ -101,11 +133,6 @@ export function App() {
       <div className='border-l border-zinc-200 flex flex-auto min-w-0 flex-col overflow-hidden dark:bg-neutral-800 dark:border-zinc-950'>
         {/* TOP-RIGHT */}
         <div className='overflow-hidden' style={{ height: `${sizes.topRightPanel}%` }}>
-          {/* <div className='flex items-center justify-between px-3 py-1 border-b border-zinc-200'>
-            <Button onClick={runAllChecks}>
-              Run Checks
-            </Button>
-          </div> */}
           <NotePreviewEditor ankiconnectHealthy={ankiconnectHealthy} />
         </div>
         {/* HORIZONTAL RESIZE HANDLE */}
@@ -116,13 +143,8 @@ export function App() {
           onMouseDown={initResizeTopRight}
         />
         {/* BOTTOM-RIGHT */}
-        <div
-          className='overflow-hidden'
-          style={{ height: `${100 - sizes.topRightPanel}%` }}
-        >
-          <div className='p-4 text-sm text-zinc-600 overflow-auto'>
-            Bottom-right panel content…
-          </div>
+        <div className='overflow-hidden' style={{ height: `${100 - sizes.topRightPanel}%` }}>
+          <HistoryPanel />
         </div>
       </div>
       <HealthModalHost />

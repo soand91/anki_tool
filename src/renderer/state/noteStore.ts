@@ -74,6 +74,10 @@ export const useNoteDraftStore = create<NoteDraftState>((set, get) => ({
         frontHtml: init.frontHtml ?? '',
         backHtml: init.backHtml ?? '',
         source: init.source ?? { origin: 'manual', capturedAt: Date.now() },
+        tags: ensureSignatureFirst(
+          init.tags ?? state.draft.tags ?? [],
+          state.signatureTag
+        )
       };
       if (!state.draft.userForcedModel) next.modelName = effectiveModel(next);
       return { draft: next };
@@ -99,10 +103,14 @@ export const useNoteDraftStore = create<NoteDraftState>((set, get) => ({
 
   setSignatureTag: (name) => {
     const sig = name?.trim() || DEFAULT_SIGNATURE;
-    set(state => ({
-      signatureTag: sig,
-      draft: { ...state.draft, tags: ensureSignatureFirst(state.draft.tags, sig) }
-    }));
+    set(state => {
+      const prevSig = state.signatureTag;
+      const withoutPrev = state.draft.tags.filter(t => t !== prevSig);
+      return {
+        signatureTag: sig,
+        draft: { ...state.draft, tags: ensureSignatureFirst(withoutPrev, sig) }
+      }
+    });
   },
 
   setModelName: (model) => {
@@ -134,9 +142,11 @@ export const useNoteDraftStore = create<NoteDraftState>((set, get) => ({
   },
 
   reset: () => {
-    set(() => ({
-      draft: createEmptyDraft(),
-      signatureTag: DEFAULT_SIGNATURE
+    set(state => ({
+      draft: {
+        ...createEmptyDraft(),
+        tags: [state.signatureTag]
+      }
     }));
   },
 

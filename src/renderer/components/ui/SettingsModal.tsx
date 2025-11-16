@@ -3,6 +3,7 @@ import Button from './Button';
 import HotkeySettings from './HotkeySettings';
 import GeneralSettings from './GeneralSettings';
 import AppearanceSettings from './AppearanceSettings';
+import AdvancedSettings from './AdvancedSettings';
 
 export type Section = 'general' | 'hotkeys' | 'alerts' | 'appearance' | 'advanced';
 
@@ -48,9 +49,7 @@ export const SECTIONS: SectionConfig[] = [
     id: 'advanced',
     label: 'Advanced',
     render: ({ registerReset }) => (
-      <div className='text-sm text-zinc-600'>
-        Advanced settings coming soon
-      </div>
+      <AdvancedSettings registerReset={registerReset} />
     ),
   },
 ]

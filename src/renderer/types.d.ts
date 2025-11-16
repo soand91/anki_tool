@@ -2,6 +2,7 @@
 export {};
 
 import type { HealthCheckId, HealthCheckResult, HealthReport } from '../shared/health/types';
+import type { HistoryFilter, HistorySnapshot } from '../shared/history/types';
 
 declare global {
   interface Window {
@@ -45,6 +46,8 @@ interface ApiBridge {
     onNoteUndoCapture: (
       handler: () => void
     ) => () => void;
+    openInBrowserByNoteId: (noteId: number) => Promise<{ ok: boolean }>;
+    openInBrowserByQuery: (query: string) => Promise<{ ok: boolean }>;
   };
   noteHotkeys: {
     getAll: () => Promise<[
@@ -59,5 +62,13 @@ interface ApiBridge {
     suspend: (on: boolean) => Promise<void>;
     onChanged: (handler: (data: any) => void) => () => void;
     onOpenPanel: (handler: () => void) => () => void;
+  };
+  history: {
+    get(filter?: HistoryFilter): Promise<HistorySnapshot>;
+    clear(): Promise<{ ok: boolean }>;
+    refresh(maxEntries?: number): Promise<{ ok: boolean }>;
+    onUpdate: (
+      handler: (payload: { noteId: number, deckName: string; createdAt: number }) => void
+    ) => () => void;
   };
 }

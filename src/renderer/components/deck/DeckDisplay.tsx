@@ -246,7 +246,7 @@ export default function DeckDisplay() {
         {decks.length === 0 && status !== 'loading' ? (
             <div className="p-4 text-sm text-zinc-500 Section">No decks yet.</div>
         ) : (
-          <ul className="px-2.5 Section">
+          <ul className="pl-2.5 pr-1 Section">
             {rows.map((n) => {
               const isSelected = n.id === selectedId;
               const canToggle = n.hasChildren;
