@@ -17,22 +17,38 @@ function platformDir() {
 }
 
 // icon + tooltip resolution
+function iconVariantFor(state: TrayState) {
+  if (platformDir() !== 'win') return '';
+  switch (state) {
+    case 'frontOnly':
+      return '-top';
+    case 'frontSuccess':
+      return '-top-success';
+    case 'frontFailure':
+      return '-top-failure';
+    case 'backOnly':
+      return '-bottom';
+    case 'backSuccess':
+      return '-bottom-success';
+    case 'backFailure':
+      return '-bottom-failure';
+    case 'ready':
+      return '-both';
+    case 'bothSuccess':
+      return '-both-success';
+    case 'bothFailure':
+      return '-both-failure';
+    default:
+      return '';
+  }
+}
+
 function iconFileFor(state: TrayState, isDark: boolean) {
   const assetRoot = "icons8-anki"
   const size = process.platform === 'darwin' ? '22' : '16';
   const color = isDark ? 'white' : 'black';;
-  switch (state) {
-    case 'idle':
-      return `${assetRoot}-${color}-${size}.png`;
-    case 'frontOnly':
-      return `${assetRoot}-${color}-${size}.png`;
-    case 'backOnly':
-      return `${assetRoot}-${color}-${size}.png`;
-    case 'ready':
-      return `${assetRoot}-${color}-${size}.png`;
-    case 'awaitClipboard':
-      return `${assetRoot}-${color}-${size}.png`;
-  }
+  const variant = iconVariantFor(state);
+  return `${assetRoot}-${color}-${size}${variant}.png`;
 }
 
 function iconPathFor(state: TrayState) { 
@@ -48,6 +64,14 @@ function tooltipFor(s: TrayState) {
     case 'backOnly':        return 'Back captured - A for Front, X to save';
     case 'ready':           return 'Card Ready - X to save';
     case 'awaitClipboard':  return 'Waiting for clipboard... press Ctrl+C';
+    case 'frontSuccess':
+    case 'backSuccess':
+    case 'bothSuccess':
+      return 'Card saved to Anki';
+    case 'frontFailure':
+    case 'backFailure':
+    case 'bothFailure':
+      return 'Card save failed';
     default:                return 'Anki Helper'
   }
 }

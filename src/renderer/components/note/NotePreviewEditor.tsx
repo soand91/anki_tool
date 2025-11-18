@@ -4,6 +4,18 @@ import { useDeckStore } from '../../state/deckStore';
 import Button from '../ui/Button';
 import { toast } from '../../state/toastStore';
 
+function hasMeaningfulContent(html?: string | null): boolean {
+  if (!html) return false;
+  const stripped = html
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/<[^>]*>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (stripped.length > 0) return true;
+  return /<(img|video|audio|svg|object|iframe)\b/i.test(html);
+}
+
 type Props = {
   ankiconnectHealthy: boolean;
 };
@@ -34,6 +46,7 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
   const backRef = useRef<HTMLDivElement | null>(null);
 
   const deckName = useDeckStore(s => s.getSelectedDeckName());
+  const lastDraftSyncRef = useRef<{ front: boolean | null; back: boolean | null }>({ front: null, back: null });
 
   // keep contentEditable in sync with store
   useEffect(() => {
@@ -47,6 +60,17 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
       backRef.current.innerHTML = draft.backHtml || '';
     }
   }, [draft.backHtml]);
+
+  useEffect(() => {
+    const api = (window as any).api;
+    if (!api?.cardFlow?.syncDraftState) return;
+    const hasFront = hasMeaningfulContent(draft.frontHtml);
+    const hasBack = hasMeaningfulContent(draft.backHtml);
+    const prev = lastDraftSyncRef.current;
+    if (prev.front === hasFront && prev.back === hasBack) return;
+    lastDraftSyncRef.current = { front: hasFront, back: hasBack };
+    api.cardFlow.syncDraftState({ hasFront, hasBack });
+  }, [draft.frontHtml, draft.backHtml]);
 
   const handleInput = (side: 'front' | 'back') => (e: React.FormEvent<HTMLDivElement>) => {
     const html = (e.currentTarget as HTMLDivElement).innerHTML || '';

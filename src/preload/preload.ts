@@ -156,6 +156,12 @@ const history = {
   },
 };
 
+const cardFlow = {
+  syncDraftState(state: { hasFront: boolean; hasBack: boolean }) {
+    ipcRenderer.send('cardFlow:syncDraftState', state);
+  },
+};
+
 console.log('[preload] loaded');
 
 contextBridge.exposeInMainWorld('api', {
@@ -165,6 +171,7 @@ contextBridge.exposeInMainWorld('api', {
   noteHotkeys,
   settings,
   history,
+  cardFlow,
 });
 
 contextBridge.exposeInMainWorld('env', {

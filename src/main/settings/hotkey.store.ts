@@ -1,6 +1,12 @@
 import { app, globalShortcut, BrowserWindow } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
+import { 
+  markClipboardReady, 
+  markClipboardCleared, 
+  recordCapture, 
+  undoLastCapture 
+} from '../state/cardFlowController';
 
 export type HotkeyActionId = 
   | 'app.showWindow'
@@ -204,26 +210,35 @@ export class HotkeyRegistry {
         break;
       }
       case 'note.captureFront':
-        this.win.webContents.send('note:capture', {
-          side: 'front',
-          html: this.readClipboardHtml(),
-          source: { origin: 'clipboard' as const, captureAt: Date.now() }
-        });
+        this.handleNoteCapture('front');
         break;
       case 'note.captureBack': 
-        this.win.webContents.send('note:capture', {
-          side: 'back', 
-          html: this.readClipboardHtml(),
-          source: { origin: 'clipboard' as const, capturedAt: Date.now() }
-        });
+        this.handleNoteCapture('back');
         break;
       case 'note.add': 
         this.win.webContents.send('note:addRequest');
         break;
       case 'note.undoCapture':
+        undoLastCapture();
         this.win.webContents.send('note:undoCapture');
         break;
     }
+  }
+
+  private handleNoteCapture(side: 'front' | 'back') {
+    const html = this.readClipboardHtml();
+    const hasContent = typeof html === 'string' && html.trim().length > 0;
+    if (hasContent) {
+      markClipboardReady();
+      recordCapture(side);
+    } else {
+      markClipboardCleared();
+    }
+    this.win?.webContents.send('note:capture', {
+      side,
+      html,
+      source: { origin: 'clipboard' as const, capturedAt: Date.now() }
+    });
   }
 
   private readClipboardHtml(): string | null {

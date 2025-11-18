@@ -4,6 +4,7 @@ import { ensureHealthyOrThrow } from "../health/runHealth";
 import { dlog } from "./utils";
 import { recordHistoryEntry } from "../state/historyStore";
 import { HistoryEntry } from "../../shared/history/types";
+import { finalizeCaptureFlow, notifyCardSaveFailed } from "../state/cardFlowController";
 
 export function registerAnkiDeckIpc() {
   dlog('ipc:register');
@@ -69,6 +70,7 @@ export function registerAnkiDeckIpc() {
       };
 
       recordHistoryEntry(entry);
+      finalizeCaptureFlow();
       // push: notify all renderer windows that history changed
       const windows = BrowserWindow.getAllWindows();
       for (const win of windows) {
@@ -81,6 +83,7 @@ export function registerAnkiDeckIpc() {
 
       return { noteId };
     } catch (err: any) {
+      notifyCardSaveFailed();
       const msg = err?.message ?? String(err);
       throw new Error(`addNote failed: ${msg}`)
     }

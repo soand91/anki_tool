@@ -71,4 +71,7 @@ interface ApiBridge {
       handler: (payload: { noteId: number, deckName: string; createdAt: number }) => void
     ) => () => void;
   };
+  cardFlow: {
+    syncDraftState(state: { hasFront: boolean; hasBack: boolean }): void;
+  };
 }

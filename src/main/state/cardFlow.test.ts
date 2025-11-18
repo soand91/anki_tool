@@ -39,9 +39,8 @@ describe('cardFlow reducer', () => {
       { type: 'CAPTURE_BACK' },
       { type: 'FINALIZE_CARD' },
     );
-    // After finalize, front/back cleared; clipboardReady still true per your reducer
-    // So tray likely 'idle'
-    expect(s.tray).toBe('idle');
+    // After finalize, tray shows success indicator
+    expect(s.tray).toBe('bothSuccess');
   });
   test('reset returns to initial', () => {
     const s = run(
@@ -50,6 +49,59 @@ describe('cardFlow reducer', () => {
       { type: 'RESET' },
     );
     expect(s.tray).toBe('awaitClipboard');
+  });
+  test('finalize sets success tray', () => {
+    const s = run(
+      { type: 'CLIPBOARD_READY' },
+      { type: 'CAPTURE_FRONT' },
+      { type: 'CAPTURE_BACK' },
+      { type: 'FINALIZE_CARD' },
+    );
+    expect(s.tray).toBe('bothSuccess');
+  });
+  test('note save failure shows failure tray', () => {
+    const s = run(
+      { type: 'CLIPBOARD_READY' },
+      { type: 'CAPTURE_FRONT' },
+      { type: 'CAPTURE_BACK' },
+      { type: 'NOTE_SAVE_FAILED' },
+    );
+    expect(s.tray).toBe('bothFailure');
+  });
+  test('failure respects variant when only front captured', () => {
+    const s = run(
+      { type: 'CLIPBOARD_READY' },
+      { type: 'CAPTURE_FRONT' },
+      { type: 'NOTE_SAVE_FAILED' },
+    );
+    expect(s.tray).toBe('frontFailure');
+  });
+  test('failure respects variant when only back captured', () => {
+    const s = run(
+      { type: 'CLIPBOARD_READY' },
+      { type: 'CAPTURE_BACK' },
+      { type: 'NOTE_SAVE_FAILED' },
+    );
+    expect(s.tray).toBe('backFailure');
+  });
+  test('clearing result after success returns to idle', () => {
+    const success = run(
+      { type: 'CLIPBOARD_READY' },
+      { type: 'CAPTURE_FRONT' },
+      { type: 'CAPTURE_BACK' },
+      { type: 'FINALIZE_CARD' },
+    );
+    const cleared = reducer(success, { type: 'CLEAR_RESULT' });
+    expect(cleared.tray).toBe('idle');
+  });
+  test('clearing result after failure returns to frontOnly/backOnly', () => {
+    const failure = run(
+      { type: 'CLIPBOARD_READY' },
+      { type: 'CAPTURE_FRONT' },
+      { type: 'NOTE_SAVE_FAILED' },
+    );
+    const cleared = reducer(failure, { type: 'CLEAR_RESULT' });
+    expect(cleared.tray).toBe('frontOnly');
   });
   test('clearing front/back updates projection correctly', () => {
     const s1 = run(
