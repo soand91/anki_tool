@@ -1,6 +1,7 @@
 // src/renderer/components/settings/AdvancedSettings.tsx
 import React, { useEffect, useState } from 'react';
 import { useNoteDraftStore } from '../../state/noteStore';
+import Button from './Button';
 
 type Props = {
   registerReset?: (fn: () => void | Promise<void>) => void;
@@ -80,47 +81,47 @@ export default function AdvancedSettings({ registerReset }: Props) {
   }, [registerReset]);
 
   return (
-    <div className='rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900'>
-      <label className='block text-xs font-medium text-zinc-700 dark:text-zinc-200'>
-        System signature tag
-      </label>
-      <p className='mt-1 text-[11px] text-zinc-500 dark:text-zinc-400'>
-        This tag is automatically added to notes created by this app so it can
-        find them later. It should be stable across all notes.
-      </p>
+    <div className='space-y-4'>
+      <div className='pr-3'>
+        <div className='text-sm font-medium text-zinc-800 dark:text-zinc-300'>
+          System signature tag
+        </div>
+        <p className='text-xs text-zinc-500 dark:text-zinc-400'>
+          This tag is automatically added to notes created by this app so it can
+          find them later. It should be stable across all notes.
+        </p>
+        <div className='mt-2 flex items-center gap-2'>
+          <input
+            type='text'
+            className='h-[30px] flex-1 rounded-md border border-zinc-300 bg-transparent px-2 py-1 text-xs text-zinc-900 outline-none focus:ring-1 focus:ring-zinc-300 hover:borde-zinc-500 hover:bg-zinc-100 transition-all duration-200 dark:hover:border-zinc-600 dark:hover:bg-[#323232] dark:border-zinc-950 dark:text-zinc-100 dark:bg-zinc-800 dark:focus:ring-zinc-600'
+            value={value}
+            onChange={e => setValue(e.target.value)}
+            placeholder={DEFAULT_SIGNATURE}
+            spellCheck={false}
+          />
 
-      <div className='mt-2 flex items-center gap-2'>
-        <input
-          type='text'
-          className='flex-1 rounded-md border border-zinc-300 bg-transparent px-2 py-1 text-xs text-zinc-900 outline-none focus:ring-1 focus:ring-zinc-400 dark:border-zinc-700 dark:text-zinc-50'
-          value={value}
-          onChange={e => setValue(e.target.value)}
-          placeholder={DEFAULT_SIGNATURE}
-          spellCheck={false}
-        />
+          <Button
+            type='button'
+            variant='outline'
+            onClick={handleResetLocal}
+            disabled={value === DEFAULT_SIGNATURE}
+          >
+            Reset
+          </Button>
 
-        <button
-          type='button'
-          className='rounded-md border border-zinc-300 px-2 py-1 text-[11px] text-zinc-600 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800'
-          onClick={handleResetLocal}
-          disabled={value === DEFAULT_SIGNATURE}
-        >
-          Reset
-        </button>
-
-        <button
-          type='button'
-          className='rounded-md bg-zinc-900 px-3 py-1 text-[11px] font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200'
-          onClick={handleSave}
-          disabled={!dirty}
-        >
-          {saved ? 'Saved' : 'Save'}
-        </button>
+          <Button
+            type='button'
+            variant='solid'
+            onClick={handleSave}
+            disabled={!dirty}
+          >
+            {saved ? 'Saved' : 'Save'}
+          </Button>
+        </div>
+        {error && (
+          <p className='mt-2 text-[11px] text-red-500'>{error}</p>
+        )}
       </div>
-
-      {error && (
-        <p className='mt-2 text-[11px] text-red-500'>{error}</p>
-      )}
     </div>
   );
 }

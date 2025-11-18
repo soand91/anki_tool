@@ -33,7 +33,7 @@ export const SECTIONS: SectionConfig[] = [
     id: 'alerts',
     label: 'Alert Behavior',
     render: ({ registerReset }) => (
-      <div className='text-sm text-zinc-600'>
+      <div className='text-sm text-zinc-600 dark:text-zinc-400'>
         Alert behavior settings coming soon
       </div>
     ),
@@ -68,6 +68,7 @@ export default function SettingsModal() {
 
   const [open, setOpen] = useState(false);
   const [section, setSection] = useState<Section>('general');
+  const [confirming, setConfirming] = useState<Section | null>(null);
 
   useEffect(() => {
     function handler(ev: any) {
@@ -91,9 +92,7 @@ export default function SettingsModal() {
   async function handleResetCurrent() {
     const fn = resetHandlers.current[section];
     if (!fn) return;
-    const currentLabel = SECTION_BY_ID[section].label;
-    const ok = window.confirm(`Reset “${currentLabel}” settings to defaults?`);
-    if (!ok) return;
+
     await fn();
   }
 
@@ -156,12 +155,42 @@ export default function SettingsModal() {
               {active.label}
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="solid" onClick={handleResetCurrent}>
-                Reset to defaults
-              </Button>
-              <Button variant="outline" onClick={() => setOpen(false)}>
-                Close
-              </Button>
+              {confirming === section ? (
+                <>
+                  <span className="text-xs text-zinc-600 dark:text-zinc-400">
+                    Reset “{SECTION_BY_ID[section].label}” to defaults?
+                  </span>
+
+                  <Button
+                    variant="solid"
+                    onClick={async () => {
+                      const fn = resetHandlers.current[section];
+                      setConfirming(null);
+                      if (!fn) return;
+                      await fn();
+                    }}
+                  >
+                    Yes
+                  </Button>
+
+                  <Button variant="outline" onClick={() => setConfirming(null)}>
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="solid"
+                    onClick={() => setConfirming(section)}
+                  >
+                    Reset to defaults
+                  </Button>
+
+                  <Button variant="outline" onClick={() => setOpen(false)}>
+                    Close
+                  </Button>
+                </>
+              )}
             </div>
           </div>
 

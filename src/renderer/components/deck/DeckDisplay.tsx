@@ -196,31 +196,33 @@ export default function DeckDisplay() {
           <label className="block text-xs text-zinc-600 mb-1 dark:text-zinc-300">
               Full deck name (supports <code className="font-mono">Parent::Child</code>)
           </label>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
               <input
-                className="cursor-text flex-1 rounded-md border border-zinc-300 px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-zinc-300 h-[30px] hover:border-zinc-500 hover:bg-zinc-100 transition-all duration-200 dark:border-zinc-950 dark:hover:border-zinc-700 dark:hover:bg-zinc-800 dark:placeholder:text-zinc-400 dark:caret-zinc-100"
+                className="flex-1 min-w-0 cursor-text rounded-md border border-zinc-300 px-2 py-1.5 text-xs outline-none focus:ring-1 focus:ring-zinc-300 h-[30px] hover:border-zinc-500 hover:bg-zinc-100 transition-all duration-200 dark:border-zinc-950 dark:hover:border-zinc-600 dark:hover:bg-[#323232] dark:placeholder:text-zinc-400 dark:caret-zinc-100 dark:text-zinc-300 dark:bg-zinc-800 dark:focus:ring-zinc-600"
                 placeholder="e.g. Inbox::Lecture 12"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 autoFocus
               />
-              <button
-                className="cursor-pointer rounded-md bg-zinc-900 text-white px-3 py-1.5 text-xs hover:bg-zinc-700 hover:shadow-sm hover:text-zinc-200 transition-all duration-200 h-[30px]"
-                type="submit"
-                disabled={!newName.trim()}
-              >
-                Create
-              </button>
-              <button
-                className="cursor-pointer rounded-md border border-zinc-300 px-3 py-1.5 text-xs text-zinc-700 hover:bg-zinc-200 hover:shadow-sm hover:text-zinc-900 transition-all duration-200 h-[30px]"
-                type="button"
-                onClick={() => {
-                  setCreating(false);
-                  setNewName('');
-                }}
-              >
-                Cancel
-              </button>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <Button
+                  type="submit"
+                  variant='solid'
+                  disabled={!newName.trim()}
+                >
+                  Create
+                </Button>
+                <Button
+                  type="button"
+                  variant='outline'
+                  onClick={() => {
+                    setCreating(false);
+                    setNewName('');
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
           </div>
           {isError && (
             <p className="mt-2 text-xs text-red-600">

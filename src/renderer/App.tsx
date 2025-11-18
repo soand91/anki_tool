@@ -13,6 +13,8 @@ import SettingsModal from './components/ui/SettingsModal'
 import HealthModalHost from './components/health/HealthModalHost'
 import { PanelLayoutPreset } from '../main/settings/prefs.store'
 import { HistoryPanel } from './components/history/HistoryPanel'
+import { PANEL_LAYOUT_PRESET_CHANGED_EVENT, THEME_MODE_CHANGED_EVENT } from './settingsEvents'
+import ToastHost from './components/ui/ToastHost'
 
 export function App() {
   useIdleSleep({ idleMs: 3 * 60_000, pollIntervalMs: 8000 });
@@ -48,6 +50,7 @@ export function App() {
   };
 
   const [panelDefaults, setPanelDefaults] = useState<PanelSizes>(() => getDefaultsForPreset('balanced'));
+  const [themeMode, setThemeMode] = useState<ThemeMode>('system');
 
   useEffect(() => {
     const api = (window as any).api;
@@ -63,6 +66,18 @@ export function App() {
         setPanelDefaults(getDefaultsForPreset('balanced'));
       }
     })();
+  }, []);
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const preset = (event as CustomEvent<PanelLayoutPreset>).detail;
+      if (!preset) return;
+      setPanelDefaults(getDefaultsForPreset(preset));
+    };
+    window.addEventListener(PANEL_LAYOUT_PRESET_CHANGED_EVENT, handler);
+    return () => {
+      window.removeEventListener(PANEL_LAYOUT_PRESET_CHANGED_EVENT, handler);
+    };
   }, []);
   
   const {
@@ -89,12 +104,36 @@ export function App() {
           stored === 'light' || stored === 'dark' || stored === 'system'
             ? stored
             : 'system';
+        setThemeMode(m);
         applyTheme(m);
       } catch {
+        setThemeMode('system');
         applyTheme('system');
       }
     })();
   }, []);
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const next = (event as CustomEvent<ThemeMode>).detail;
+      if (!next) return;
+      setThemeMode(next);
+      applyTheme(next);
+    };
+    window.addEventListener(THEME_MODE_CHANGED_EVENT, handler);
+    return () => {
+      window.removeEventListener(THEME_MODE_CHANGED_EVENT, handler);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (themeMode !== 'system') return;
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const listener = () => applyTheme('system');
+    mq.addEventListener('change', listener);
+    return () => mq.removeEventListener('change', listener);
+  }, [themeMode]);
   useNoteCapture();
   useDeckLifecycle();
 
@@ -103,7 +142,7 @@ export function App() {
   return (
     <div
       ref={containerRef}
-      className='fixed inset-0 flex flex-col md:flex-row gap-1.5 h-screen overflow-hidden border-t border-zinc-200 dark:bg-zinc-800'
+      className='fixed inset-0 flex flex-col md:flex-row gap-1.5 h-screen overflow-hidden border-t border-zinc-200 dark:bg-zinc-800 dark:border-zinc-950'
       style={{
         display: 'flex',
         flexDirection: 'row',
@@ -150,6 +189,7 @@ export function App() {
       <HealthModalHost />
       <LiveHealthPip />
       <SettingsModal />
+      <ToastHost />
       {/* INLINE STYLING FOR RESIZE HANDLES */}
       <style>{`
         html, body, #root { height: 100%; }
@@ -180,7 +220,7 @@ export function App() {
           background-color: #3b82f6
         }
         .dark .resize-handle.active.snapped::after {
-          background-color: black
+          background-color: #FFFF8F
         }
         .resize-handle.horizontal::after { width: 2px; height: 60%; }
         .resize-handle.vertical::after { height: 2px; width: 60%; }

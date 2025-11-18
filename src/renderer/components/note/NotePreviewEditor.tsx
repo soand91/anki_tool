@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { useNoteDraft } from '../../hooks/useNoteDraft';
 import { useDeckStore } from '../../state/deckStore';
 import Button from '../ui/Button';
+import { toast } from '../../state/toastStore';
 
 type Props = {
   ankiconnectHealthy: boolean;
@@ -91,11 +92,23 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
         ...payload,
         deckName: deckName ?? undefined
       });
-      // success UX
-      alert(`Added note id: ${res?.noteId ?? 'unknown'}`);
+      toast.success({
+        title: 'Note added',
+        message: deckName ? `Saved to ${deckName}` : 'Saved to default deck',
+      });
       reset();
     } catch (err: any) {
-      alert(`Add note failed: ${err?.message ?? String(err)}`);
+      const message = err?.message ?? String(err);
+      toast.error({
+        title: 'Add note failed',
+        message,
+        autoCloseMs: undefined,
+        onClick: () => {
+          if (typeof window !== 'undefined') {
+            window.focus();
+          }
+        },
+      });
     }
   };
 
@@ -263,13 +276,13 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
               {/* Add tag */}
               {!addingTag ? (
                 <button
-                  className='rounded-full border border-dashed border-zinc-300 px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-50 dark:border-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-zinc-400 dark:bg-[#323232]'
+                  className='cursor-pointer rounded-full border border-dashed border-zinc-300 px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-50 dark:border-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-zinc-400 dark:bg-[#323232]'
                   onClick={() => setAddingTag(true)}
                 >
                   + Add tag
                 </button>
               ) : (
-                <div className='flex items-center gap-1 rounded-full border border-zinc-300 bg-white px-2 py-1 dark:bg-zinc-700 dark:border-zinc-950'>
+                <div className='hover:border-zinc-500 hover:bg-zinc-100 transitional-all duration-200 dark:hover:bg-[#323232] dark:hover:border-zinc-600 flex items-center gap-1 rounded-full border border-zinc-300 bg-white px-2 py-1 dark:bg-zinc-800 dark:border-zinc-950'>
                   <input 
                     className='w-20 bg-transparent text-xs outline-none dark:text-zinc-300 dark:placeholder:text-zinc-500 dark:caret-zinc-100'
                     value={newTag}
@@ -293,7 +306,7 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
                     placeholder='new tag'
                   />
                   <button
-                    className='text-xs text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-400'
+                    className='cursor-pointer text-xs text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-400'
                     onClick={() => {
                       const t = newTag.trim();
                       if (t) {
@@ -306,7 +319,7 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
                     title='Add'
                   >Add</button>
                   <button
-                    className='text-xs text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-500'
+                    className='cursor-pointer text-xs text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-500'
                     onClick={() => { setNewTag(''); setAddingTag(false); }}
                     title='Cancel'
                   >Cancel</button>

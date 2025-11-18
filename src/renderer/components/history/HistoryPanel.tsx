@@ -169,14 +169,14 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({ className = '' }) =>
               Viewing: 
             </span>
             {/* Segmented toggle: All / Selected */}
-            <div className="inline-flex items-center rounded-full bg-zinc-100 p-0.5 text-[10px] text-zinc-500 dark:text-zinc-400">
+            <div className="inline-flex items-center rounded-full bg-zinc-100 p-0.5 text-[10px] text-zinc-500 dark:text-zinc-400 dark:bg-[#323232]">
               <button
                 type="button"
                 onClick={() => setFilterBySelectedDeck(false)}
                 className={`rounded-full px-2 py-0.5 transition duration-200 cursor-pointer ${
                   !filterBySelectedDeck
-                    ? 'bg-white text-zinc-900 shadow-sm'
-                    : 'text-zinc-500'
+                    ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-500 dark:text-zinc-950'
+                    : 'text-zinc-500 dark:text-zinc-500'
                 }`}
               >
                 All
@@ -191,8 +191,8 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({ className = '' }) =>
                 disabled={!selectedDeckName}
                 className={`max-w-[250px] truncate rounded-full px-2 py-0.5 transition duration-200 cursor-pointer ${
                   filterBySelectedDeck
-                    ? 'bg-white text-zinc-900 shadow-sm'
-                    : 'text-zinc-500'
+                    ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-500 dark:text-zinc-950'
+                    : 'text-zinc-500 dark:text-zinc-500'
                 } ${!selectedDeckName ? 'opacity-50 cursor-default' : ''}`}
               >
                 {selectedDeckName || 'Default'}

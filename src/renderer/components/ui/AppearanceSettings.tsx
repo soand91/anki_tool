@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { applyTheme, ThemeMode } from './theme';
+import { PANEL_LAYOUT_PRESET_CHANGED_EVENT, THEME_MODE_CHANGED_EVENT } from '../../settingsEvents';
 
 type Props = {
   registerReset?: (fn: () => void | Promise<void>) => void;
@@ -9,6 +10,20 @@ type PanelLayoutPreset = 'balanced' | 'wideDecks' | 'wideNotes';
 
 const DEFAULT_THEME_MODE: ThemeMode = 'system';
 const DEFAULT_LAYOUT_PRESET: PanelLayoutPreset = 'balanced';
+
+function emitLayoutPresetChange(next: PanelLayoutPreset) {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(
+    new CustomEvent(PANEL_LAYOUT_PRESET_CHANGED_EVENT, { detail: next })
+  );
+}
+
+function emitThemeModeChange(next: ThemeMode) {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(
+    new CustomEvent(THEME_MODE_CHANGED_EVENT, { detail: next })
+  );
+}
 
 export default function AppearanceSettings({ registerReset }: Props) {
   const api = (window as any).api;
@@ -53,6 +68,8 @@ export default function AppearanceSettings({ registerReset }: Props) {
       } catch {}
       setMode(DEFAULT_THEME_MODE);
       setLayoutPreset(DEFAULT_LAYOUT_PRESET);
+      emitThemeModeChange(DEFAULT_THEME_MODE);
+      emitLayoutPresetChange(DEFAULT_LAYOUT_PRESET);
       applyTheme(DEFAULT_THEME_MODE);
     });
   }, [registerReset]);
@@ -63,6 +80,7 @@ export default function AppearanceSettings({ registerReset }: Props) {
     try {
       await api.settings?.prefs?.set('themeMode', next);
     } catch {}
+    emitThemeModeChange(next);
   };
 
   const handleLayoutChange = async (next: PanelLayoutPreset) => {
@@ -70,6 +88,7 @@ export default function AppearanceSettings({ registerReset }: Props) {
     try {
       await api.settings?.prefs?.set('panelLayoutPreset', next);
     } catch {}
+    emitLayoutPresetChange(next);
   };
 
   const systemIsDark = 
@@ -78,15 +97,16 @@ export default function AppearanceSettings({ registerReset }: Props) {
     window.matchMedia('(prefers-color-scheme: dark)').matches;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* dark/lightmode */}
-      <div>
-        <div className="text-sm font-medium text-zinc-800 dark:text-zinc-300">Theme</div>
-        <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+      <div className='space-y-2'>
+        <div className="mb-0 text-sm font-medium text-zinc-800 dark:text-zinc-300">
+          Theme
+        </div>
+        <div className="text-xs text-zinc-500 dark:text-zinc-400">
           Choose how the app follows your system appearance.
         </div>
-      </div>
-      <div className="space-y-2">
+        
         <label className="flex cursor-pointer items-center gap-2 text-sm text-zinc-800 dark:text-zinc-300">
           <input
             type="radio"
@@ -123,17 +143,18 @@ export default function AppearanceSettings({ registerReset }: Props) {
           />
           <span>Dark</span>
         </label>
-      </div>
-      <div className="mt-1 border-t border-zinc-200 pt-2 text-[11px] text-zinc-500 dark:border-zinc-950 dark:text-zinc-400">
-        Changes apply immediately. In “System” mode, the app follows your OS light/dark
-        preference.
+
+        <div className="border-b border-zinc-200 pb-1 text-[11px] text-zinc-500 dark:border-zinc-950 dark:text-zinc-400">
+          Changes apply immediately. In “System” mode, the app follows your OS light/dark
+          preference.
+        </div>
       </div>
       {/* layout preferences */}
       <div className='space-y-2'>
-        <div className='text-sm font-medium text-zinc-800 dark:text-zinc-300'>
+        <div className='mb-0 text-sm font-medium text-zinc-800 dark:text-zinc-300'>
           Layout
         </div>
-        <div className='mt-1 text-xs text-zinc-500 dark:text-zinc-400'>
+        <div className='text-xs text-zinc-500 dark:text-zinc-400'>
           Choose the default panel layout. You can still drag the dividers at any time.
         </div>
 
@@ -146,12 +167,14 @@ export default function AppearanceSettings({ registerReset }: Props) {
             onChange={() => handleLayoutChange('balanced')}
             disabled={loading}
           />
-          <span>Balanced</span>
+          <span className='flex gap-1'>
+            <span>Balanced</span>
+            <span className='text-zinc-500 dark:text-zinc-400'>(Default)</span>
+          </span>
           <span className='text-[11px] text-zinc-500 dark:text-zinc-400'>
             Left 30%, top-right 60%
           </span>
         </label>
-
         <label className='flex cursor-pointer items-center gap-2 text-sm text-zinc-800 dark:text-zinc-300'>
           <input
             type='radio'
@@ -166,7 +189,6 @@ export default function AppearanceSettings({ registerReset }: Props) {
             Wider left panel for browsing.
           </span>
         </label>
-
         <label className='flex cursor-pointer items-center gap-2 text-sm text-zinc-800 dark:text-zinc-300'>
           <input
             type='radio'
@@ -181,6 +203,7 @@ export default function AppearanceSettings({ registerReset }: Props) {
             Wider editor area for editing.
           </span>
         </label>
+
       </div>
     </div>
   );

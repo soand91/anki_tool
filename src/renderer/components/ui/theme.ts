@@ -3,7 +3,7 @@ export type EffectiveTheme = 'light' | 'dark';
 
 export function detectSystemTheme(): EffectiveTheme {
   if (typeof window === 'undefined' || !window.matchMedia) return 'light';
-  return window.matchMedia('(prefers-color-scheme: dark').matches ? 'dark' : 'light';
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 export function applyTheme(mode: ThemeMode): EffectiveTheme {
