@@ -48,6 +48,8 @@ function formatDeckLabel(raw: string, maxChars = 24): string {
 
 export const HistoryPanel: React.FC<HistoryPanelProps> = ({ className = '' }) => {
   const selectedDeckName = useDeckStore(s => s.getSelectedDeckName());
+  const hasDecks = useDeckStore(s => s.sortedDecks.length > 0);
+  const selectedDeckLabel = selectedDeckName ?? (hasDecks ? 'Default' : 'No deck selected');
   const [filterBySelectedDeck, setFilterBySelectedDeck] = React.useState(false);
   const effectiveDeckName = filterBySelectedDeck ? selectedDeckName : null;
   const {
@@ -195,7 +197,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({ className = '' }) =>
                     : 'text-zinc-500 dark:text-zinc-500'
                 } ${!selectedDeckName ? 'opacity-50 cursor-default' : ''}`}
               >
-                {selectedDeckName || 'Default'}
+                {selectedDeckLabel}
               </button>
             </div>
           </div>

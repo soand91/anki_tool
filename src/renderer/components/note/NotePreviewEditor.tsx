@@ -46,6 +46,8 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
   const backRef = useRef<HTMLDivElement | null>(null);
 
   const deckName = useDeckStore(s => s.getSelectedDeckName());
+  const hasDecks = useDeckStore(s => s.sortedDecks.length > 0);
+  const deckLabel = deckName ?? (hasDecks ? 'Default' : 'No decks found');
   const lastDraftSyncRef = useRef<{ front: boolean | null; back: boolean | null }>({ front: null, back: null });
 
   // keep contentEditable in sync with store
@@ -160,8 +162,8 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
       <div className='cursor-default mb-1.25 flex items-center justify-between border-b border-zinc-200 px-3 py-1 dark:border-zinc-950'>
         <div className="flex flex-1 flex-col min-w-0 flex-shrink overflow-hidden">
           <h2 className="truncate text-sm font-semibold text-zinc-800 dark:text-zinc-300">Note Preview</h2>
-          <span className="truncate text-[11px] text-zinc-500 dark:text-zinc-400" title={deckName || undefined}>
-            Selected Deck: {deckName || 'Default'}
+          <span className="truncate text-[11px] text-zinc-500 dark:text-zinc-400" title={deckLabel}>
+            Selected Deck: {deckLabel}
           </span>
         </div>
         <div className='flex items-center gap-1.5'>

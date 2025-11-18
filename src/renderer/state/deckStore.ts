@@ -38,6 +38,79 @@ type DeckState = {
 
 const DEFAULT_TTL_MS = 60_000;
 const REFRESH_DEBOUNCE_MS = 350;
+const LAST_SELECTED_DECK_KEY = 'anki_tool:lastSelectedDeckName';
+
+function readDeckNameFromStorage(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const value = window.localStorage.getItem(LAST_SELECTED_DECK_KEY);
+    return value && value.trim() ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeDeckNameToStorage(name: string | null) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (!name) {
+      window.localStorage.removeItem(LAST_SELECTED_DECK_KEY);
+    } else {
+      window.localStorage.setItem(LAST_SELECTED_DECK_KEY, name);
+    }
+  } catch {
+    // ignore storage failures
+  }
+}
+
+let persistedDeckNameCache: string | null = readDeckNameFromStorage();
+
+function updatePersistedDeckNameCache(name: string | null, opts?: { skipRemote?: boolean }) {
+  const clean = typeof name === 'string' && name.trim().length > 0 ? name.trim() : null;
+  persistedDeckNameCache = clean;
+  writeDeckNameToStorage(clean);
+  if (!opts?.skipRemote) {
+    try {
+      window.api?.settings?.prefs?.set('lastSelectedDeckName', clean ?? null);
+    } catch {}
+  }
+}
+
+function getPersistedDeckName() {
+  return persistedDeckNameCache;
+}
+
+function persistSelectedDeck(deckId: DeckId | null, decksById: Map<DeckId, DeckRecord>) {
+  if (deckId == null) {
+    updatePersistedDeckNameCache(null);
+    return;
+  }
+  const rec = decksById.get(deckId);
+  updatePersistedDeckNameCache(rec?.name ?? null);
+}
+
+function chooseSelectedDeck(opts: {
+  prevSelectedId: DeckId | null;
+  decksById: Map<DeckId, DeckRecord>;
+  decksByName: Map<string, DeckId>;
+  sortedDecks: DeckRecord[];
+}): DeckId | null {
+  const { prevSelectedId, decksById, decksByName, sortedDecks: sortedList } = opts;
+  if (prevSelectedId != null && decksById.has(prevSelectedId)) {
+    return prevSelectedId;
+  }
+  const lastSelectedName = getPersistedDeckName();
+  if (lastSelectedName) {
+    const id = decksByName.get(lastSelectedName);
+    if (id != null) return id;
+  }
+  const defaultId = decksByName.get('Default');
+  if (defaultId != null) return defaultId;
+  if (sortedList.length > 0) {
+    return sortedList[0].id;
+  }
+  return null;
+}
 
 // single shared debounce/flight guards per module
 let refreshTimer: ReturnType<typeof setTimeout> | null = null;
@@ -59,7 +132,7 @@ export const useDeckStore = create<DeckState>((set, get) => ({
   // initial state
   decksById: new Map(),
   decksByName: new Map(),
-  sortedDecks: new Array,
+  sortedDecks: [],
   selectedDeckId: null,
 
   status: 'idle',
@@ -105,22 +178,25 @@ export const useDeckStore = create<DeckState>((set, get) => ({
             byId.set(id, rec);
             byName.set(name, id);
           }
-          // selection drift resolution
+          const ordered = sortedDecks(byId);
+          // selection drift resolution based on hierarchy described
           const prevSelected = get().selectedDeckId;
-          let nextSelected: DeckId | null = prevSelected;
-          if (prevSelected != null && !byId.has(prevSelected)) {
-            // selected deck no longer exists (deleted, moved, etc.)
-            nextSelected = null //TODO message here
-          }
+          const resolvedSelected = chooseSelectedDeck({
+            prevSelectedId: prevSelected,
+            decksById: byId,
+            decksByName: byName,
+            sortedDecks: ordered,
+          });
           set({
             decksById: byId,
             decksByName: byName,
-            sortedDecks: sortedDecks(byId),
+            sortedDecks: ordered,
             lastFetchedAt: now(),
             status: 'ready',
             error: null,
-            selectedDeckId: nextSelected,
+            selectedDeckId: resolvedSelected,
           });
+          persistSelectedDeck(resolvedSelected, byId);
         } catch (e: any) {
           set({
             status: 'error',
@@ -207,6 +283,7 @@ export const useDeckStore = create<DeckState>((set, get) => ({
       return;
     }
     set({ selectedDeckId: deckId });
+    persistSelectedDeck(deckId, state.decksById);
   },
 
   // derived helpers
@@ -219,6 +296,22 @@ export const useDeckStore = create<DeckState>((set, get) => ({
     return now() - get().lastFetchedAt > ttlMs
   },
 }));
+
+// sync persisted deck name from prefs on startup
+if (typeof window !== 'undefined' && window.api?.settings?.prefs) {
+  window.api.settings.prefs.get('lastSelectedDeckName')
+    .then((value) => {
+      const clean = typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+      updatePersistedDeckNameCache(clean, { skipRemote: true });
+      if (!clean) return;
+      const { decksByName } = useDeckStore.getState();
+      const id = decksByName.get(clean);
+      if (id != null) {
+        useDeckStore.setState({ selectedDeckId: id });
+      }
+    })
+    .catch(() => {});
+}
 
 // convenience selectors
 export const useDeckStatus = () => useDeckStore((s) => s.status);

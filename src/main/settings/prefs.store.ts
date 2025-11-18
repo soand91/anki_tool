@@ -14,6 +14,7 @@ type Prefs = {
   themeMode: ThemeMode;
   panelLayoutPreset: PanelLayoutPreset;
   signatureTag: string;
+  lastSelectedDeckName: string | null;
 };
 
 const STORE_PATH = path.join(app.getPath('userData'), 'prefs.json');
@@ -34,6 +35,9 @@ function readStore(): Prefs {
         themeMode: obj.themeMode ?? 'system',
         panelLayoutPreset: obj.panelLayoutPreset ?? 'balanced',
         signatureTag,
+        lastSelectedDeckName: typeof obj.lastSelectedDeckName === 'string' && obj.lastSelectedDeckName.trim().length > 0
+          ? obj.lastSelectedDeckName.trim()
+          : null,
       }
     }
   } catch {}
@@ -45,6 +49,7 @@ function readStore(): Prefs {
     themeMode: 'system',
     panelLayoutPreset: 'balanced',
     signatureTag: 'anki_tool',
+    lastSelectedDeckName: null,
   };
 }
 
@@ -109,6 +114,19 @@ export const prefs = {
     cache = {
       ...cache,
       signatureTag: clean || 'anki_tool',
+    };
+    writeStore(cache);
+  },
+  getLastSelectedDeckName(): string | null {
+    const raw = cache.lastSelectedDeckName;
+    if (typeof raw !== 'string') return null;
+    return raw.trim().length > 0 ? raw.trim() : null;
+  },
+  setLastSelectedDeckName(name: string | null) {
+    const clean = typeof name === 'string' ? name.trim() : '';
+    cache = {
+      ...cache,
+      lastSelectedDeckName: clean.length > 0 ? clean : null,
     };
     writeStore(cache);
   },

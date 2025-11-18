@@ -111,6 +111,7 @@ const settings = {
         | 'themeMode' 
         | 'panelLayoutPreset'
         | 'signatureTag'
+        | 'lastSelectedDeckName'
     ) => ipcRenderer.invoke('prefs:get', key),
     set: (
       key: 
@@ -119,7 +120,8 @@ const settings = {
         | 'launchOnStartup' 
         | 'themeMode' 
         | 'panelLayoutPreset'
-        | 'signatureTag',
+        | 'signatureTag'
+        | 'lastSelectedDeckName',
       value: any
     ) => ipcRenderer.invoke('prefs:set', key, value),
   },

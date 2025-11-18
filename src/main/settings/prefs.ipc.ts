@@ -10,6 +10,7 @@ export function registerPrefsIpc() {
       case 'themeMode': return prefs.getThemeMode();
       case 'panelLayoutPreset': return prefs.getPanelLayoutPreset();
       case 'signatureTag': return prefs.getSignatureTag();
+      case 'lastSelectedDeckName': return prefs.getLastSelectedDeckName();
       default: throw new Error(`Unknown prefs key: ${key}`);
     }
   });
@@ -29,6 +30,8 @@ export function registerPrefsIpc() {
         return prefs.setPanelLayoutPreset(value);
       case 'signatureTag':
         return prefs.setSignatureTag(String(value));
+      case 'lastSelectedDeckName':
+        return prefs.setLastSelectedDeckName(typeof value === 'string' ? value : null);
       default: throw new Error(`Unknown prefs key: ${key}`);
     }
   });

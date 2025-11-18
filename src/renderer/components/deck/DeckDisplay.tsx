@@ -246,7 +246,9 @@ export default function DeckDisplay() {
       {/* Deck list */}
       <div className="flex-1 overflow-auto scrollbar">
         {decks.length === 0 && status !== 'loading' ? (
-            <div className="p-4 text-sm text-zinc-500 Section">No decks yet.</div>
+            <div className="p-4 text-sm text-zinc-500 Section">
+              No decks found. Create one in Anki (or with “Create deck”) and refresh to begin.
+            </div>
         ) : (
           <ul className="pl-2.5 pr-1 Section">
             {rows.map((n) => {

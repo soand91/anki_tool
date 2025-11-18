@@ -63,6 +63,39 @@ interface ApiBridge {
     onChanged: (handler: (data: any) => void) => () => void;
     onOpenPanel: (handler: () => void) => () => void;
   };
+  settings: {
+    onOpen: (cb: (payload?: any) => void) => () => void;
+    prefs: {
+      get: (
+        key:
+          | 'minimizeToTray'
+          | 'startMinimized'
+          | 'launchOnStartup'
+          | 'themeMode'
+          | 'panelLayoutPreset'
+          | 'signatureTag'
+          | 'lastSelectedDeckName'
+      ) => Promise<any>;
+      set: (
+        key:
+          | 'minimizeToTray'
+          | 'startMinimized'
+          | 'launchOnStartup'
+          | 'themeMode'
+          | 'panelLayoutPreset'
+          | 'signatureTag'
+          | 'lastSelectedDeckName',
+        value: any
+      ) => Promise<any>;
+    };
+    hotkeys: {
+      list: () => Promise<any>;
+      set: (actionId: string, accelerator: string | null) => Promise<any>;
+      resetAll: () => Promise<any>;
+      suspend: (on: boolean) => Promise<any>;
+      onChanged: (handler: (data: any) => void) => () => void;
+    };
+  };
   history: {
     get(filter?: HistoryFilter): Promise<HistorySnapshot>;
     clear(): Promise<{ ok: boolean }>;
