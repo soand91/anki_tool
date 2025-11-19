@@ -11,6 +11,7 @@ export function registerPrefsIpc() {
       case 'panelLayoutPreset': return prefs.getPanelLayoutPreset();
       case 'signatureTag': return prefs.getSignatureTag();
       case 'lastSelectedDeckName': return prefs.getLastSelectedDeckName();
+      case 'addNoteSoundEnabled': return prefs.getAddNoteSoundEnabled();
       default: throw new Error(`Unknown prefs key: ${key}`);
     }
   });
@@ -32,6 +33,8 @@ export function registerPrefsIpc() {
         return prefs.setSignatureTag(String(value));
       case 'lastSelectedDeckName':
         return prefs.setLastSelectedDeckName(typeof value === 'string' ? value : null);
+      case 'addNoteSoundEnabled':
+        return prefs.setAddNoteSoundEnabled(Boolean(value));
       default: throw new Error(`Unknown prefs key: ${key}`);
     }
   });

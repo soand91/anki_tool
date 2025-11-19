@@ -124,9 +124,10 @@ export function useNoteDraft() {
   const canSubmit = useCallback(
     (ankiconnectHealthy: boolean) => {
       if (!ankiconnectHealthy) return false;
-      // front required after sanitize
-      const front = sanitizeHtml(draft.frontHtml).trim();
-      if (front.length === 0) return false;
+      // need at least one meaningful side
+      const frontLength = sanitizeHtml(draft.frontHtml).trim().length;
+      const backLength = sanitizeHtml(draft.backHtml).trim().length;
+      if (frontLength === 0 && backLength === 0) return false;
       // if effective model is Cloze but no cloze present AND user forced CLOZE, block
       if (modelNameEffective === 'Cloze' && !clozeDetected && draft.userForcedModel === 'Cloze') {
         return false;
@@ -134,7 +135,7 @@ export function useNoteDraft() {
       // if user did NOT force Cloze, auto mode
       return true;
     },
-    [draft.frontHtml, draft.userForcedModel, modelNameEffective, clozeDetected]
+    [draft.frontHtml, draft.backHtml, draft.userForcedModel, modelNameEffective, clozeDetected]
   );
 
   // payload with fields sanitized
@@ -145,6 +146,15 @@ export function useNoteDraft() {
     const fields: Record<string, string> = {};
     for (const [k, v] of Object.entries(payload.fields)) {
       fields[k] = sanitizeHtml(v ?? '');
+    }
+    if (payload.modelName === 'Basic') {
+      const front = fields.Front ?? '';
+      const back = fields.Back ?? '';
+      const frontLength = front.trim().length;
+      const backLength = back.trim().length;
+      if (frontLength === 0 && backLength > 0) {
+        fields.Front = '&nbsp;';
+      }
     }
     return {
       ...payload,

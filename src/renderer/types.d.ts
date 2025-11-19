@@ -75,6 +75,7 @@ interface ApiBridge {
           | 'panelLayoutPreset'
           | 'signatureTag'
           | 'lastSelectedDeckName'
+          | 'addNoteSoundEnabled'
       ) => Promise<any>;
       set: (
         key:
@@ -84,7 +85,8 @@ interface ApiBridge {
           | 'themeMode'
           | 'panelLayoutPreset'
           | 'signatureTag'
-          | 'lastSelectedDeckName',
+          | 'lastSelectedDeckName'
+          | 'addNoteSoundEnabled',
         value: any
       ) => Promise<any>;
     };
@@ -106,5 +108,14 @@ interface ApiBridge {
   };
   cardFlow: {
     syncDraftState(state: { hasFront: boolean; hasBack: boolean }): void;
+    noteFailed(): void;
   };
+}
+declare module '*.mp3' {
+  const src: string;
+  export default src;
+}
+declare module '*.ogg' {
+  const src: string;
+  export default src;
 }

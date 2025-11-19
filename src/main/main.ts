@@ -22,6 +22,9 @@ function showMain(win: BrowserWindow) {
 
 initMainLogging();
 
+// Allow sound playback even when there hasn't been a user gesture yet
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
+
 const single = app.requestSingleInstanceLock();
 if (!single) {
   app.quit();

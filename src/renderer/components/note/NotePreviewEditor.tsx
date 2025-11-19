@@ -1,8 +1,9 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { useNoteDraft } from '../../hooks/useNoteDraft';
 import { useDeckStore } from '../../state/deckStore';
 import Button from '../ui/Button';
 import { toast } from '../../state/toastStore';
+import { playAddNoteSound } from '../../sound/addNoteSounds';
 
 function hasMeaningfulContent(html?: string | null): boolean {
   if (!html) return false;
@@ -49,6 +50,11 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
   const hasDecks = useDeckStore(s => s.sortedDecks.length > 0);
   const deckLabel = deckName ?? (hasDecks ? 'Default' : 'No decks found');
   const lastDraftSyncRef = useRef<{ front: boolean | null; back: boolean | null }>({ front: null, back: null });
+  const draftContentRef = useRef<{ frontHtml: string; backHtml: string }>({ frontHtml: draft.frontHtml, backHtml: draft.backHtml });
+
+  useEffect(() => {
+    draftContentRef.current = { frontHtml: draft.frontHtml, backHtml: draft.backHtml };
+  }, [draft.frontHtml, draft.backHtml]);
 
   // keep contentEditable in sync with store
   useEffect(() => {
@@ -111,19 +117,37 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
     reset();
   };
 
-  const onAddNote = async () => {
+  const signalEmptyDraftFailure = useCallback(() => {
+    toast.error({
+      title: 'Card is empty',
+      message: 'Capture or type on Front or Back before saving.',
+      autoCloseMs: 4000,
+    });
+    void playAddNoteSound('failure');
+    try {
+      if (typeof window !== 'undefined') {
+        window.api?.cardFlow?.noteFailed?.();
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const onAddNote = useCallback(async () => {
     try {
       const payload = toSanitizedAnkiPayload();
       const res = await (window as any).api.note.addNote({
         ...payload,
         deckName: deckName ?? undefined
       });
+      void playAddNoteSound('success');
       toast.success({
         title: 'Note added',
         message: deckName ? `Saved to ${deckName}` : 'Saved to default deck',
       });
       reset();
     } catch (err: any) {
+      void playAddNoteSound('failure');
       const message = err?.message ?? String(err);
       toast.error({
         title: 'Add note failed',
@@ -136,7 +160,7 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
         },
       });
     }
-  };
+  }, [deckName, reset, toSanitizedAnkiPayload]);
 
   const disabled = !canSubmit(ankiconnectHealthy);
 
@@ -151,10 +175,17 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
       const disabled = !canSubmit(ankiconnectHealthy);
       if (!disabled) {
         await onAddNote();
+        return;
+      }
+      const { frontHtml, backHtml } = draftContentRef.current;
+      const hasFront = hasMeaningfulContent(frontHtml);
+      const hasBack = hasMeaningfulContent(backHtml);
+      if (!hasFront && !hasBack) {
+        signalEmptyDraftFailure();
       }
     });
     return () => { if (typeof unsub === 'function') unsub(); };
-  }, [canSubmit, ankiconnectHealthy]);
+  }, [canSubmit, ankiconnectHealthy, onAddNote, signalEmptyDraftFailure]);
 
   return (
     <div className='flex h-full flex-col pb-1.5'>

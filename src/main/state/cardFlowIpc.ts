@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron';
-import { syncDraftState } from './cardFlowController';
+import { syncDraftState, notifyCardSaveFailed } from './cardFlowController';
 
 export function registerCardFlowIpc() {
   ipcMain.on('cardFlow:syncDraftState', (_evt, payload: { hasFront?: boolean; hasBack?: boolean }) => {
@@ -7,5 +7,8 @@ export function registerCardFlowIpc() {
     const hasFront = Boolean(payload.hasFront);
     const hasBack = Boolean(payload.hasBack);
     syncDraftState({ hasFront, hasBack });
+  });
+  ipcMain.on('cardFlow:noteFailed', () => {
+    notifyCardSaveFailed();
   });
 }

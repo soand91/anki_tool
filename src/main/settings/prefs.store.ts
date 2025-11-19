@@ -15,6 +15,7 @@ type Prefs = {
   panelLayoutPreset: PanelLayoutPreset;
   signatureTag: string;
   lastSelectedDeckName: string | null;
+  addNoteSoundEnabled: boolean;
 };
 
 const STORE_PATH = path.join(app.getPath('userData'), 'prefs.json');
@@ -38,6 +39,9 @@ function readStore(): Prefs {
         lastSelectedDeckName: typeof obj.lastSelectedDeckName === 'string' && obj.lastSelectedDeckName.trim().length > 0
           ? obj.lastSelectedDeckName.trim()
           : null,
+        addNoteSoundEnabled: typeof obj.addNoteSoundEnabled === 'boolean'
+          ? obj.addNoteSoundEnabled
+          : true,
       }
     }
   } catch {}
@@ -50,6 +54,7 @@ function readStore(): Prefs {
     panelLayoutPreset: 'balanced',
     signatureTag: 'anki_tool',
     lastSelectedDeckName: null,
+    addNoteSoundEnabled: true,
   };
 }
 
@@ -128,6 +133,13 @@ export const prefs = {
       ...cache,
       lastSelectedDeckName: clean.length > 0 ? clean : null,
     };
+    writeStore(cache);
+  },
+  getAddNoteSoundEnabled(): boolean {
+    return Boolean(cache.addNoteSoundEnabled);
+  },
+  setAddNoteSoundEnabled(on: boolean) {
+    cache = { ...cache, addNoteSoundEnabled: Boolean(on) };
     writeStore(cache);
   },
 };

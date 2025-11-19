@@ -1,5 +1,6 @@
 import { BrowserWindow, ipcMain } from "electron";
-import { HEALTH_ORDER, HealthReport, HealthStatus, HealthCheckId, HealthCheckResult } from "../../shared/health/types";
+import type { HealthReport, HealthStatus, HealthCheckId, HealthCheckResult } from "../../shared/health/types";
+import { HEALTH_ORDER } from "./order";
 import { checkAnkiProcess, checkAnkiConnectHttp, checkAnkiConnectVersion, checkAddNoteDryRun } from "./detectors";
 import { sleep, jitter, isFresh, noteFailFastHit, breakerOpen, dlog } from './utils';
 

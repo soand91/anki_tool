@@ -4,7 +4,8 @@
     "jsx": "react-jsx",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "esnext",
-    "moduleResolution": "Bundler"
+    "moduleResolution": "Bundler",
+    "allowArbitraryExtensions": true
   },
   "include": ["src/renderer"]
 }

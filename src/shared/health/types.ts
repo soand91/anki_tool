@@ -23,9 +23,3 @@ export interface HealthReport {
   checks: Record<HealthCheckId, HealthCheckResult>;
 }
 
-export const HEALTH_ORDER: HealthCheckId[] = [
-  "anki.process",
-  "ankiconnect.http",
-  "ankiconnect.version",
-  "ankiconnect.addNoteDryRun"
-]

@@ -67,63 +67,81 @@ export default function GeneralSettings({ registerReset }: Props) {
   const isOverridden = themeMode !== 'system';
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pr-4">
       {/* Minimize to tray */}
-      <div>
-        <label className="flex cursor-pointer items-center gap-3">
-          <input
-            type="checkbox"
-            checked={minToTray}
-            onChange={async (e) => {
-              const v = e.target.checked;
-              setMinToTray(v);
-              try {
-                await api.settings.prefs.set('minimizeToTray', v);
-              } catch {}
-            }}
-          />
-          <span className="text-sm text-zinc-800 dark:text-zinc-300">Minimize to tray</span>
-        </label>
-        <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-          When enabled, clicking Minimize hides the window to the system tray.
+      <section>
+        <div className='flex items-center justify-between'>
+          <div>
+            <div className='font-medium text-sm text-zinc-800 dark:text-zinc-300'>Minimize to tray</div>
+            <div className='text-xs text-zinc-500 dark:text-zinc-400'>
+              When enabled, clicking Minimize hides the window to the system tray.
+            </div>
+          </div>
+          <label className='inline-flex items-center gap-2 cursor-pointer'>
+            <input
+              type='checkbox'
+              className='h-4 w-4'
+              checked={minToTray}
+              onChange={async (e) => {
+                const v = e.target.checked;
+                setMinToTray(v);
+                try {
+                  await api.settings.prefs.set('minimizeToTray', v);
+                } catch {}
+              }}
+            />
+            <span className='text-xs'>{minToTray ? 'On' : 'Off'}</span>
+          </label>
         </div>
-      </div>
+      </section>
       {/* Start minimized */}
-      <div>
-        <label className="flex cursor-pointer items-center gap-3">
-          <input
-            type="checkbox"
-            checked={startMinimized}
-            onChange={async (e) => {
-              const v = e.target.checked;
-              setStartMinimized(v);
-              await api.settings.prefs.set('startMinimized', v);
-            }}
-          />
-          <span className="text-sm text-zinc-800 dark:text-zinc-300">Start minimized</span>
-        </label>
-        <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-          Launch the app hidden in the tray instead of showing the window.
+      <section>
+        <div className='flex items-center justify-between'>
+          <div>
+            <div className='font-medium text-sm text-zinc-800 dark:text-zinc-300'>Start Minimized</div>
+            <div className='text-xs text-zinc-500 dark:text-zinc-400'>
+              Launch the app hidden in the tray instead of showing the window.
+            </div>
+          </div>
+          <label className='inline-flex items-center gap-2 cursor-pointer'>
+            <input
+              type='checkbox'
+              className='h-4 w-4'
+              checked={startMinimized}
+              onChange={async (e) => {
+                const v = e.target.checked;
+                setStartMinimized(v);
+                await api.settings.prefs.set('startMinimized', v);
+              }}
+            />
+            <span className='text-xs'>{startMinimized ? 'On' : 'Off'}</span>
+          </label>
         </div>
-      </div>
+      </section>
       {/* Launch on system startup */}
-      <div>
-        <label className="flex cursor-pointer items-center gap-3">
-          <input
-            type="checkbox"
-            checked={launchOnStartup}
-            onChange={async (e) => {
-              const v = e.target.checked;
-              setLaunchOnStartup(v);
-              await api.settings.prefs.set('launchOnStartup', v);
-            }}
-          />
-          <span className="text-sm text-zinc-800 dark:text-zinc-300">Launch on system startup</span>
-        </label>
-        <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-          Start the app automatically when you log into your computer.
+      <section>
+        <div className='flex items-center justify-between'>
+          <div>
+            <div className='font-medium text-sm text-zinc-800 dark:text-zinc-300'>Launch on system startup</div>
+            <div className='text-xs text-zinc-500 dark:text-zinc-400'>
+              Start the app automatically when you log into your computer.
+            </div>
+          </div>
+          <label className='inline-flex items-center gap-2 cursor-pointer'>
+            <input
+              type='checkbox'
+              className='h-4 w-4'
+              checked={launchOnStartup}
+              onChange={async (e) => {
+                const v = e.target.checked;
+                setLaunchOnStartup(v);
+                await api.settings.prefs.set('launchOnStartup', v);
+              }}
+            />
+            <span className='text-xs'>{launchOnStartup ? 'On' : 'Off'}</span>
+          </label>
         </div>
-      </div>
+      </section>
       {/* Divider */}
       <div className='border-t border-zinc-200 dark:border-zinc-950' />
       {/* Theme blip */}

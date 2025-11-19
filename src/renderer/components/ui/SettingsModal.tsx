@@ -4,6 +4,7 @@ import HotkeySettings from './HotkeySettings';
 import GeneralSettings from './GeneralSettings';
 import AppearanceSettings from './AppearanceSettings';
 import AdvancedSettings from './AdvancedSettings';
+import AlertBehaviorSettings from './AlertBehaviorSettings';
 
 export type Section = 'general' | 'hotkeys' | 'alerts' | 'appearance' | 'advanced';
 
@@ -33,9 +34,7 @@ export const SECTIONS: SectionConfig[] = [
     id: 'alerts',
     label: 'Alert Behavior',
     render: ({ registerReset }) => (
-      <div className='text-sm text-zinc-600 dark:text-zinc-400'>
-        Alert behavior settings coming soon
-      </div>
+      <AlertBehaviorSettings registerReset={registerReset} />
     ),
   },
   {

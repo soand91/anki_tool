@@ -112,6 +112,7 @@ const settings = {
         | 'panelLayoutPreset'
         | 'signatureTag'
         | 'lastSelectedDeckName'
+        | 'addNoteSoundEnabled'
     ) => ipcRenderer.invoke('prefs:get', key),
     set: (
       key: 
@@ -121,7 +122,8 @@ const settings = {
         | 'themeMode' 
         | 'panelLayoutPreset'
         | 'signatureTag'
-        | 'lastSelectedDeckName',
+        | 'lastSelectedDeckName'
+        | 'addNoteSoundEnabled',
       value: any
     ) => ipcRenderer.invoke('prefs:set', key, value),
   },
@@ -161,6 +163,9 @@ const history = {
 const cardFlow = {
   syncDraftState(state: { hasFront: boolean; hasBack: boolean }) {
     ipcRenderer.send('cardFlow:syncDraftState', state);
+  },
+  noteFailed() {
+    ipcRenderer.send('cardFlow:noteFailed');
   },
 };
 

@@ -62,7 +62,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({ className = '' }) =>
     loadMore,
   } = useHistory({
     deckName: effectiveDeckName,
-    pageSize: 2,
+    pageSize: 25,
   });
 
   const safeEntries = entries ?? [];
