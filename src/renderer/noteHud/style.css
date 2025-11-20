@@ -1,0 +1,328 @@
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: transparent;
+  color: #f4f5f7;
+  overflow: hidden;
+}
+
+#root {
+  display: flex;
+  width: 100%;
+}
+
+.hud-shell {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  backdrop-filter: blur(20px);
+  background: rgba(4, 4, 6, 0.62);
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 20px 30px rgba(0, 0, 0, 0.35),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  animation: hudFade 280ms ease forwards;
+}
+
+.hud-chrome {
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  background: rgba(20, 20, 27, 0.55);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  transition: background 150ms ease;
+  -webkit-app-region: drag;
+}
+
+.hud-chrome:hover {
+  background: rgba(20, 20, 27, 0.8);
+}
+
+.hud-chrome-bar {
+  flex: 1;
+  height: 6px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0));
+  border-radius: 999px;
+}
+
+.hud-chrome-buttons {
+  display: flex;
+  gap: 4px;
+  margin-left: 12px;
+  -webkit-app-region: no-drag;
+}
+
+.hud-icon {
+  width: 18px;
+  height: 18px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: #8d90a3;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 150ms ease, background 150ms ease;
+  -webkit-app-region: no-drag;
+}
+
+.hud-icon:hover {
+  color: #fafafa;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.hud-root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: calc(100% - 20px);
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.hud-window {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-radius: 14px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(11, 13, 19, 0.85);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.hud-window.highlight {
+  animation: hudPulse 240ms ease;
+}
+
+.hud-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hud-deck {
+  font-weight: 600;
+  font-size: 13px;
+  color: #cdd0d9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-chip {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.hud-alert {
+  font-size: 11px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: rgba(214, 69, 69, 0.18);
+  color: #ffb8c2;
+}
+
+.hud-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.hud-card {
+  background: rgba(20, 22, 30, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 10px 12px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.hud-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.hud-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8a8f9f;
+}
+
+.hud-preview-text {
+  font-size: 12px;
+  color: #f9fbff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hud-preview-text.back {
+  color: #d5d8e3;
+}
+
+.hud-placeholder {
+  color: #5e6272;
+}
+
+.hud-history {
+  flex-shrink: 0;
+  padding: 8px 10px;
+}
+
+.hud-history-dots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.hud-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #555b66;
+  opacity: 0.85;
+}
+
+.hud-empty {
+  font-size: 11px;
+  color: #6c7284;
+}
+
+@keyframes hudFade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hudPulse {
+  from {
+    box-shadow: 0 0 0 rgba(117, 255, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(117, 255, 246, 0.3);
+  }
+  to {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Resize handles */
+.resize-handle {
+  position: absolute;
+  z-index: 1000;
+  -webkit-app-region: no-drag;
+  transition: background-color 150ms ease;
+}
+
+.resize-handle:hover {
+  background-color: rgba(117, 255, 246, 0.15);
+}
+
+.resize-top,
+.resize-bottom {
+  left: 8px;
+  right: 8px;
+  height: 8px;
+  cursor: ns-resize;
+}
+
+.resize-top {
+  top: 0;
+}
+
+.resize-bottom {
+  bottom: 0;
+}
+
+.resize-left,
+.resize-right {
+  top: 8px;
+  bottom: 8px;
+  width: 8px;
+  cursor: ew-resize;
+}
+
+.resize-left {
+  left: 0;
+}
+
+.resize-right {
+  right: 0;
+}
+
+.resize-corner {
+  width: 16px;
+  height: 16px;
+}
+
+.resize-top-left {
+  top: 0;
+  left: 0;
+  cursor: nwse-resize;
+}
+
+.resize-top-right {
+  top: 0;
+  right: 0;
+  cursor: nesw-resize;
+}
+
+.resize-bottom-left {
+  bottom: 0;
+  left: 0;
+  cursor: nesw-resize;
+}
+
+.resize-bottom-right {
+  bottom: 0;
+  right: 0;
+  cursor: nwse-resize;
+}
+
+.hud-shell.resizing {
+  user-select: none;
+  pointer-events: all;
+}
+
+.hud-shell.resizing * {
+  user-select: none;
+}

@@ -9,6 +9,7 @@ import { registerHealthIpc, runAllChecks, startHealthPolling } from './health/ru
 import { initMainLogging, log } from './log';
 import { hotkeys } from './settings/hotkey.store';
 import { prefs } from './settings/prefs.store';
+import { initializeNoteHud } from './noteHudWindow';
 
 let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
@@ -39,6 +40,7 @@ if (!single) {
   app.whenReady().then(() => {
     log.info('[main] app ready');
     registerIpc();
+    initializeNoteHud();
 
     mainWindow = createMainWindow();
 

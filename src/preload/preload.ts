@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from "electron";
 import type { HealthCheckId, HealthCheckResult, HealthReport } from '../shared/health/types';
 import type { HistoryFilter, HistorySnapshot } from "../shared/history/types";
+import type { NoteHudState } from "../shared/noteHud/types";
 
 const health = {
   healthCheck: (id: HealthCheckId): Promise<HealthCheckResult> => {
@@ -169,6 +170,38 @@ const cardFlow = {
   },
 };
 
+const noteHud = {
+  toggle() {
+    return ipcRenderer.invoke('noteHud:toggle');
+  },
+  show() {
+    return ipcRenderer.invoke('noteHud:show');
+  },
+  hide() {
+    return ipcRenderer.invoke('noteHud:hide');
+  },
+  openSettings() {
+    return ipcRenderer.invoke('noteHud:openSettings');
+  },
+  getState(): Promise<NoteHudState> {
+    return ipcRenderer.invoke('noteHud:getState');
+  },
+  onUpdate(handler: (state: NoteHudState) => void) {
+    const channel = 'noteHud:update';
+    const wrapped = (_e: IpcRendererEvent, payload: NoteHudState) => handler(payload);
+    ipcRenderer.on(channel, wrapped);
+    return () => ipcRenderer.off(channel, wrapped);
+  },
+  updateDraftPreview(payload: { deckName?: string; front?: string; back?: string }) {
+    return ipcRenderer.invoke('noteHud:updateDraftPreview', payload);
+  },
+  resize(width: number, height: number, edge: string) {
+    return ipcRenderer.invoke('noteHud:resize', { width, height, edge });
+  },
+};
+
+const noteHudToggle = () => ipcRenderer.invoke('noteHud:toggle');
+
 console.log('[preload] loaded');
 
 contextBridge.exposeInMainWorld('api', {
@@ -179,6 +212,8 @@ contextBridge.exposeInMainWorld('api', {
   settings,
   history,
   cardFlow,
+  noteHud,
+  noteHudToggle,
 });
 
 contextBridge.exposeInMainWorld('env', {

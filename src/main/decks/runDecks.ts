@@ -5,6 +5,7 @@ import { dlog } from "./utils";
 import { recordHistoryEntry } from "../state/historyStore";
 import { HistoryEntry } from "../../shared/history/types";
 import { finalizeCaptureFlow, notifyCardSaveFailed } from "../state/cardFlowController";
+import { emitAddNoteEvent } from "../state/addNoteEvents";
 
 export function registerAnkiDeckIpc() {
   dlog('ipc:register');
@@ -36,8 +37,21 @@ export function registerAnkiDeckIpc() {
     if (!payload?.modelName || !payload?.fields) {
       throw new Error('Invalid addNote payload');
     }
+    const deckName = (payload.deckName ?? 'Default').trim();
+    const frontPreview = deriveFrontPreview(payload.fields, payload.modelName);
+    const backPreview  = deriveBackPreview(payload.fields, payload.modelName);
+    const eventFields: { front: string; back?: string } = {
+      front: truncatePreview(frontPreview),
+    };
+    const trimmedBack = backPreview ? truncatePreview(backPreview) : undefined;
+    if (trimmedBack) eventFields.back = trimmedBack;
+    emitAddNoteEvent({
+      kind: 'start',
+      timestamp: Date.now(),
+      deckName,
+      fields: { ...eventFields },
+    });
     try {
-      const deckName = (payload.deckName ?? 'Default').trim();
       const noteId = await addNote({
         modelName: payload.modelName,
         fields: payload.fields,
@@ -46,6 +60,13 @@ export function registerAnkiDeckIpc() {
         allowDuplicate: payload.allowDuplicate,
         duplicateScope: payload.duplicateScope,
       });
+      emitAddNoteEvent({
+        kind: 'success',
+        timestamp: Date.now(),
+        deckName,
+        fields: { ...eventFields },
+        noteId,
+      });
       // fetch card IDs for this new note
       let cardIds: number[] = [];
       try {
@@ -53,9 +74,6 @@ export function registerAnkiDeckIpc() {
       } catch (err) {
         dlog('[history] getCardsFromNotes failed', err);
       }
-      // build front/back previews from the fields
-      const frontPreview = deriveFrontPreview(payload.fields, payload.modelName);
-      const backPreview  = deriveBackPreview(payload.fields, payload.modelName);
       // record this note in the local history cache
       const entry: HistoryEntry = {
         noteId,
@@ -83,6 +101,20 @@ export function registerAnkiDeckIpc() {
 
       return { noteId };
     } catch (err: any) {
+      const errorCode = typeof err?.code === 'string'
+        ? err.code
+        : err?.code != null
+          ? String(err.code)
+          : 'unknown';
+      const errorMessage = err?.message ? String(err.message) : String(err ?? 'Unknown error');
+      emitAddNoteEvent({
+        kind: 'failure',
+        timestamp: Date.now(),
+        deckName,
+        fields: { ...eventFields },
+        errorCode,
+        errorMessage,
+      });
       notifyCardSaveFailed();
       const msg = err?.message ?? String(err);
       throw new Error(`addNote failed: ${msg}`)
@@ -201,4 +233,11 @@ export function htmlToPreview(raw: string | undefined | null, maxLen = 120): str
     return text.slice(0, maxLen - 1) + '…';
   }
   return text;
+}
+
+function truncatePreview(value: string | undefined | null, maxLen = 80): string {
+  if (!value) return '';
+  const trimmed = value.trim();
+  if (trimmed.length <= maxLen) return trimmed;
+  return trimmed.slice(0, maxLen - 3) + '...';
 }

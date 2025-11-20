@@ -3,6 +3,7 @@ export {};
 
 import type { HealthCheckId, HealthCheckResult, HealthReport } from '../shared/health/types';
 import type { HistoryFilter, HistorySnapshot } from '../shared/history/types';
+import type { NoteHudState } from '../shared/noteHud/types';
 
 declare global {
   interface Window {
@@ -110,6 +111,16 @@ interface ApiBridge {
     syncDraftState(state: { hasFront: boolean; hasBack: boolean }): void;
     noteFailed(): void;
   };
+  noteHud: {
+    toggle(): Promise<{ ok: boolean }>;
+    show(): Promise<{ ok: boolean }>;
+    hide(): Promise<{ ok: boolean }>;
+    openSettings(): Promise<{ ok: boolean }>;
+    getState(): Promise<NoteHudState>;
+    onUpdate(handler: (state: NoteHudState) => void): () => void;
+    updateDraftPreview(payload: { deckName?: string; front?: string; back?: string }): Promise<{ ok: boolean }>;
+  };
+  noteHudToggle(): Promise<{ ok: boolean }>;
 }
 declare module '*.mp3' {
   const src: string;

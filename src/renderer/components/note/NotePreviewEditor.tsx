@@ -17,6 +17,22 @@ function hasMeaningfulContent(html?: string | null): boolean {
   return /<(img|video|audio|svg|object|iframe)\b/i.test(html);
 }
 
+function toPreviewText(html: string | null | undefined, limit = 160): string {
+  if (!html) return '';
+  let text = '';
+  if (typeof document !== 'undefined') {
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    text = temp.textContent || temp.innerText || '';
+  } else {
+    text = html.replace(/<[^>]*>/g, ' ');
+  }
+  text = text.replace(/\s+/g, ' ').trim();
+  if (!text) return '';
+  if (text.length <= limit) return text;
+  return `${text.slice(0, limit - 3)}...`;
+}
+
 type Props = {
   ankiconnectHealthy: boolean;
 };
@@ -51,10 +67,30 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
   const deckLabel = deckName ?? (hasDecks ? 'Default' : 'No decks found');
   const lastDraftSyncRef = useRef<{ front: boolean | null; back: boolean | null }>({ front: null, back: null });
   const draftContentRef = useRef<{ frontHtml: string; backHtml: string }>({ frontHtml: draft.frontHtml, backHtml: draft.backHtml });
+  const lastDraftPreviewRef = useRef<{ deck: string; front: string; back: string } | null>(null);
 
   useEffect(() => {
     draftContentRef.current = { frontHtml: draft.frontHtml, backHtml: draft.backHtml };
   }, [draft.frontHtml, draft.backHtml]);
+
+  useEffect(() => {
+    const updatePreview = window?.api?.noteHud?.updateDraftPreview;
+    if (!updatePreview) return;
+    const deck = deckName ?? 'Default';
+    const front = toPreviewText(draft.frontHtml);
+    const back = toPreviewText(draft.backHtml);
+    const next = { deck, front, back };
+    const prev = lastDraftPreviewRef.current;
+    if (prev && prev.deck === deck && prev.front === front && prev.back === back) {
+      return;
+    }
+    lastDraftPreviewRef.current = next;
+    updatePreview({
+      deckName: deck,
+      front,
+      back: back || undefined,
+    }).catch(() => {});
+  }, [deckName, draft.frontHtml, draft.backHtml]);
 
   // keep contentEditable in sync with store
   useEffect(() => {
@@ -116,6 +152,16 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
     setConfirmingClear(false);
     reset();
   };
+
+  const handleToggleNoteHud = useCallback(() => {
+    try {
+      const toggle = window?.api?.noteHudToggle;
+      if (!toggle) return;
+      void toggle().catch(() => {});
+    } catch {
+      // ignore toggle errors
+    }
+  }, []);
 
   const signalEmptyDraftFailure = useCallback(() => {
     toast.error({
@@ -192,7 +238,17 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
       {/* Header */}
       <div className='cursor-default mb-1.25 flex items-center justify-between border-b border-zinc-200 px-3 py-1 dark:border-zinc-950'>
         <div className="flex flex-1 flex-col min-w-0 flex-shrink overflow-hidden">
-          <h2 className="truncate text-sm font-semibold text-zinc-800 dark:text-zinc-300">Note Preview</h2>
+          <div className='flex items-center gap-2'>
+            <h2 className="truncate text-sm font-semibold text-zinc-800 dark:text-zinc-300">Note Preview</h2>
+            <button
+              type='button'
+              onClick={handleToggleNoteHud}
+              className='shrink-0 rounded border border-zinc-300 px-2 py-0.5 text-[11px] font-medium text-zinc-600 transition hover:border-zinc-400 hover:text-zinc-800 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-500 dark:hover:text-zinc-100'
+              title='Show or hide the floating Note HUD'
+            >
+              Note HUD
+            </button>
+          </div>
           <span className="truncate text-[11px] text-zinc-500 dark:text-zinc-400" title={deckLabel}>
             Selected Deck: {deckLabel}
           </span>

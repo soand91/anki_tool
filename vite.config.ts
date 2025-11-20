@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 
 // we build the renderer to an internal dist (Vite's defualt), then copy over to ../dist/renderer at build
 export default defineConfig({
@@ -14,6 +15,12 @@ export default defineConfig({
   root: 'src/renderer',
   build: {
     outDir: '../../dist/renderer',
-    emptyOutDir: true
+    emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'src/renderer/index.html'),
+        'note-hud': resolve(__dirname, 'src/renderer/note-hud.html'),
+      },
+    },
   },
 });
