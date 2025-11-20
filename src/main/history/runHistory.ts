@@ -1,36 +1,36 @@
 import { ipcMain } from "electron";
-import { dlog } from "../health/utils";
+import { dlog } from "./utils";
 import { getHistorySnapshot, clearHistory, updateHistoryEntries } from "../state/historyStore";
 import type { HistoryFilter } from "../../shared/history/types";
 import { notesInfo, cardsInfo } from "../ankiClient";
 import type { HistoryEntry } from "../../shared/history/types";
 
 export function registerHistoryIpc() {
-  dlog('[history] ipc:register');
+  dlog('ipc:register');
   ipcMain.handle('history:get', async (_evt, filter?: HistoryFilter) => {
-    dlog('[history] ipc:invoke history:get', filter ?? {});
+    dlog('ipc:invoke history:get', filter ?? {});
     try {
       const snapshot = getHistorySnapshot(filter ?? {});
       return snapshot;
     } catch (err: any) {
       const msg = err?.message ?? String(err);
-      dlog('[history] history:get failed', msg);
+      dlog('history:get failed', msg);
       throw new Error(`history:get failed: ${msg}`);
     }
   });
   ipcMain.handle('history:clear', async () => {
-    dlog('[history] ipc:invoke history:clear');
+    dlog('ipc:invoke history:clear');
     try {
       clearHistory();
       return { ok: true };
     } catch (err: any) {
       const msg = err?.message ?? String(err);
-      dlog('[history] history:clear failed', msg);
+      dlog('history:clear failed', msg);
       throw new Error(`history:clear failed: ${msg}`);
     }
   });
   ipcMain.handle('history:refresh', async (_evt, maxEntries?: number) => {
-    dlog('[history] ipc:invoke history:refresh', { maxEntries });
+    dlog('ipc:invoke history:refresh', { maxEntries });
     await refreshHistoryFromAnki(maxEntries);
     return { ok: true };
   })

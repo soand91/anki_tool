@@ -1,5 +1,12 @@
-import { app, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import { prefs, ThemeMode } from './prefs.store';
+
+function broadcastThemeMode(mode: ThemeMode) {
+  const windows = BrowserWindow.getAllWindows();
+  for (const win of windows) {
+    win.webContents.send('settings:themeModeChanged', mode);
+  }
+}
 
 export function registerPrefsIpc() {
   ipcMain.handle('prefs:get', (_evt, key: string) => {
@@ -25,7 +32,13 @@ export function registerPrefsIpc() {
         return;
       case 'themeMode': {
         const mode = value as ThemeMode;
-        return prefs.setThemeMode(mode);
+        const before = prefs.getThemeMode();
+        prefs.setThemeMode(mode);
+        const after = prefs.getThemeMode();
+        if (after !== before) {
+          broadcastThemeMode(after);
+        }
+        return;
       };
       case 'panelLayoutPreset':
         return prefs.setPanelLayoutPreset(value);

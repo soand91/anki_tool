@@ -6,6 +6,7 @@ import { registerAnkiDeckIpc } from './decks/runDecks';
 import { registerSettingsIpc } from './settings/hub';
 import { registerHistoryIpc } from './history/runHistory';
 import { registerCardFlowIpc } from './state/cardFlowIpc';
+import { registerHudIpc } from './hud/runHud';
 
 export function registerIpc() {
   log.info("[main] registerIpc()");
@@ -15,4 +16,5 @@ export function registerIpc() {
   registerSettingsIpc();
   registerHistoryIpc();
   registerCardFlowIpc();
+  registerHudIpc();
 }

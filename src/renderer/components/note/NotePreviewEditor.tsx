@@ -192,7 +192,10 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
       {/* Header */}
       <div className='cursor-default mb-1.25 flex items-center justify-between border-b border-zinc-200 px-3 py-1 dark:border-zinc-950'>
         <div className="flex flex-1 flex-col min-w-0 flex-shrink overflow-hidden">
-          <h2 className="truncate text-sm font-semibold text-zinc-800 dark:text-zinc-300">Note Preview</h2>
+          <div className='flex gap-2'>
+            <h2 className="truncate text-sm font-semibold text-zinc-800 dark:text-zinc-300">Note Preview</h2>
+            <button onClick={() => (window as any).api.hud.openHud()}>Open HUD</button>
+          </div>
           <span className="truncate text-[11px] text-zinc-500 dark:text-zinc-400" title={deckLabel}>
             Selected Deck: {deckLabel}
           </span>

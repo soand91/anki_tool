@@ -169,6 +169,23 @@ const cardFlow = {
   },
 };
 
+const hud = {
+  openHud: () => ipcRenderer.invoke('hud:open'),
+  minimizeHud: () => ipcRenderer.invoke('hud:minimize'),
+  closeHud: () => ipcRenderer.invoke('hud:close'),
+  maximizeHud: () => ipcRenderer.invoke('hud:maximizeOrRestore'),
+};
+
+// Broadcasts from main process → renderer windows
+ipcRenderer.on('settings:themeModeChanged', (_evt, mode) => {
+  try {
+    const evt = new CustomEvent('settings:themeModeChanged', { detail: mode });
+    window.dispatchEvent(evt);
+  } catch {
+    // ignore
+  }
+});
+
 console.log('[preload] loaded');
 
 contextBridge.exposeInMainWorld('api', {
@@ -179,6 +196,7 @@ contextBridge.exposeInMainWorld('api', {
   settings,
   history,
   cardFlow,
+  hud,
 });
 
 contextBridge.exposeInMainWorld('env', {

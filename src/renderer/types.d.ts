@@ -110,12 +110,9 @@ interface ApiBridge {
     syncDraftState(state: { hasFront: boolean; hasBack: boolean }): void;
     noteFailed(): void;
   };
-}
-declare module '*.mp3' {
-  const src: string;
-  export default src;
-}
-declare module '*.ogg' {
-  const src: string;
-  export default src;
+  hud: {
+    openHud: () => Promise<void>;
+    minimizeHud: () => Promise<void>;
+    closeHud: () => Promise<void>;
+  };
 }
