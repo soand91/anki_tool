@@ -17,7 +17,7 @@ import { PANEL_LAYOUT_PRESET_CHANGED_EVENT, THEME_MODE_CHANGED_EVENT } from './s
 import ToastHost from './components/ui/ToastHost'
 
 export function App() {
-  useIdleSleep({ idleMs: 3 * 60_000, pollIntervalMs: 8000 });
+  const { idle, waking } = useIdleSleep({ idleMs: 10_000, pollIntervalMs: 8000 });
   const {
     rows,
     overall,
@@ -187,7 +187,7 @@ export function App() {
         </div>
       </div>
       <HealthModalHost />
-      <LiveHealthPip />
+      <LiveHealthPip idle={idle} waking={waking} />
       <SettingsModal />
       <ToastHost />
       {/* INLINE STYLING FOR RESIZE HANDLES */}

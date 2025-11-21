@@ -5,7 +5,7 @@ import { buildTrayMenu } from './trayMenu';
 import { buildAppMenu } from './appMenu';
 import { setupTray } from './tray';
 import { registerIpc } from './ipc';
-import { registerHealthIpc, runAllChecks, startHealthPolling } from './health/runHealth';
+import { runAllChecks } from './health/runHealth';
 import { initMainLogging, log } from './log';
 import { hotkeys } from './settings/hotkey.store';
 import { prefs } from './settings/prefs.store';
@@ -68,8 +68,6 @@ if (!single) {
         mainWindow!.hide();
       });
     }
-
-    startHealthPolling(8000)
 
     // unified quit callback
     const quitApp = () => {

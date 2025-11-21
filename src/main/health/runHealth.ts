@@ -25,11 +25,18 @@ let current: HealthReport = makeInitialReport();
 let polling = false;
 let pollTimer: NodeJS.Timeout | null = null;
 let refreshInFlight = false;
+let pollOwners = new Set<string>(); // e.g., 'main-window', 'pip'
+let pollIntervalMs = 8000;
 
-export function startHealthPolling(intervalMs = 8000) {
+export function startHealthPolling(ownerId = 'unknown', intervalMs = 8000) {
+  const owner = ownerId || 'unknown';
+  pollOwners.add(owner);
+  if (typeof intervalMs === 'number' && !Number.isNaN(intervalMs)) {
+    pollIntervalMs = intervalMs;
+  }
   if (polling) return;
   polling = true;
-  dlog('poll:start', { intervalMs });
+  dlog('poll:start', { intervalMs: pollIntervalMs, owners: Array.from(pollOwners) });
   const tick = async () => {
     if (!polling) return;
     if (refreshInFlight) return;
@@ -39,18 +46,21 @@ export function startHealthPolling(intervalMs = 8000) {
     } finally {
       refreshInFlight = false;
       if (polling) { 
-        pollTimer = setTimeout(tick, jitter(intervalMs));
+        pollTimer = setTimeout(tick, jitter(pollIntervalMs));
       }
     }
   };
-  pollTimer = setTimeout(tick, jitter(intervalMs));
+  pollTimer = setTimeout(tick, jitter(pollIntervalMs));
 }
 
-export function stopHealthPolling() {
+export function stopHealthPolling(ownerId = 'unknown') {
+  const owner = ownerId || 'unknown';
+  pollOwners.delete(owner);
+  if (pollOwners.size > 0) return;
   if (!polling) return;
   polling = false;
   if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
-  dlog('poll:stop');
+  dlog('poll:stop', { owners: Array.from(pollOwners) });
 }
 
 function makeInitialReport(): HealthReport {
@@ -316,21 +326,6 @@ export async function ensureHealthyOrThrow(opts?: {
   dlog('gate:proceed', { overall: current.overall });
 }
 
-let pollOwners = new Set<string>(); // e.g., 'pip', 'modal'
-
-function ensurePollingStarted() {
-  if (!pollTimer) {
-    pollTimer = setInterval(() => { /* runAllChecks() or mini check loop */ }, 8000);
-    dlog('poll:start', { owners: Array.from(pollOwners) });
-  }
-}
-function ensurePollingStopped() {
-  if (pollTimer && pollOwners.size === 0) {
-    clearInterval(pollTimer);
-    pollTimer = null;
-    dlog('poll:stop');
-  }
-}
 export function registerHealthIpc() {
   dlog('ipc:register');
   ipcMain.handle('health:check', async (_e, id: HealthCheckId) => {
@@ -347,17 +342,12 @@ export function registerHealthIpc() {
     return getReport();
   });
   ipcMain.handle('health:polling:start', async(_e, ownerId: string, intervalMs?: number) => {
-    dlog('ipc:invoke health:polling:start', { intervalMs });
-    if (typeof intervalMs === 'number') { /* update interval if desired */ }
-    pollOwners.add(ownerId || 'unknown');
-    ensurePollingStarted();
-    // startHealthPolling(typeof intervalMs === 'number' ? intervalMs: 8000);
+    dlog('ipc:invoke health:polling:start', { ownerId, intervalMs });
+    startHealthPolling(ownerId, intervalMs);
   });
   ipcMain.handle('health:polling:stop', async (_e, ownerId: string) => {
-    dlog('ipc:invoke health:polling:stop');
-    pollOwners.delete(ownerId || 'unknown');
-    ensurePollingStopped();
-    // stopHealthPolling();
+    dlog('ipc:invoke health:polling:stop', { ownerId });
+    stopHealthPolling(ownerId);
   });
   ipcMain.handle('health:mini', async () => {
     dlog('ipc:invoke health:mini');

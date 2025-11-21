@@ -14,8 +14,8 @@ interface ApiBridge {
   health: {
     runAll(): Promise<HealthReport>;
     onHealthUpdate<T = unknown>(cb: (evt: T) => void): () => void;
-    startHealthPolling(intervalMs?: number): Promise<void>;
-    stopHealthPolling(): Promise<void>;
+    startHealthPolling(ownerId: string, intervalMs?: number): Promise<void>;
+    stopHealthPolling(ownerId: string): Promise<void>;
     getHealthReport(): Promise<import('../shared/health/types').HealthReport>;
     onUpdate<T = unknown>(cb: (evt: T) => void): () => void;
     runMini(): Promise<HealthReport>;

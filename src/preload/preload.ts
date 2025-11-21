@@ -18,11 +18,11 @@ const health = {
     ipcRenderer.on(channel, handler);
     return () => ipcRenderer.removeListener(channel, handler);
   },
-  startHealthPolling: (intervalMs?: number) => {
-    ipcRenderer.invoke('health:polling:start', intervalMs);
+  startHealthPolling: (ownerId: string, intervalMs?: number) => {
+    return ipcRenderer.invoke('health:polling:start', ownerId, intervalMs);
   },
-  stopHealthPolling: () => {
-    return ipcRenderer.invoke('health:polling:stop');
+  stopHealthPolling: (ownerId: string) => {
+    return ipcRenderer.invoke('health:polling:stop', ownerId);
   },
   runMini: () => {
     return ipcRenderer.invoke('health:mini');

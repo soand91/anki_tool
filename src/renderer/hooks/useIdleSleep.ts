@@ -11,6 +11,7 @@ export function useIdleSleep(opts: UseIdleOptions = {}) {
   const pollIntervalMs = opts.pollIntervalMs ?? 8000;
   
   const [idle, setIdle] = useState(false);
+  const [waking, setWaking] = useState(false);
   const lastActiveRef = useRef<number>(Date.now());
   const timerRef = useRef<number | null>(null);
 
@@ -20,10 +21,12 @@ export function useIdleSleep(opts: UseIdleOptions = {}) {
       if (idle) {
         // WAKING: do a mini health refresh and resume polling
         setIdle(false);
+        setWaking(true);
         // fire-and-forget, don't block UI
         (async () => {
           try { await window.api.health.runMini(); } catch {}
-          try { await window.api.health.startHealthPolling(pollIntervalMs); } catch {}
+          try { await window.api.health.startHealthPolling('main-window', pollIntervalMs); } catch {}
+          setWaking(false);
         })();
       }
     };
@@ -40,7 +43,7 @@ export function useIdleSleep(opts: UseIdleOptions = {}) {
       if (idleNow && !idle) {
         setIdle(true);
         // pause polling while idle
-        (async () => { try { await window.api.health.stopHealthPolling(); } catch {} })();
+        (async () => { try { await window.api.health.stopHealthPolling('main-window'); } catch {} })();
       }
       timerRef.current = window.setTimeout(tick, 5_000);
     }
@@ -52,5 +55,5 @@ export function useIdleSleep(opts: UseIdleOptions = {}) {
     };
   }, [idle, idleMs, pollIntervalMs]);
 
-  return { idle };
+  return { idle, waking };
 }
