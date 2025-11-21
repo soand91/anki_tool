@@ -1,5 +1,5 @@
-import { BrowserWindow, ipcMain } from "electron";
-import { existsSync } from 'node:fs';
+import { app, BrowserWindow, ipcMain, screen } from "electron";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { isDev } from '../env';
 import { dlog } from "./utils";
@@ -23,9 +23,12 @@ function loadHudUrl(win: BrowserWindow) {
 }
 
 function createWindow() {
+  const savedBounds = loadSavedBounds();
   mainWindow = new BrowserWindow({
-    width: 250,
-    height: 200,
+    width: savedBounds?.width ?? 250,
+    height: savedBounds?.height ?? 200,
+    x: savedBounds?.x,
+    y: savedBounds?.y,
     minWidth: 250,
     minHeight: 200,
     frame: false,
@@ -47,9 +50,59 @@ function createWindow() {
   };
   mainWindow.webContents.once('did-finish-load', showSafely);
   mainWindow.once('ready-to-show', showSafely);
+  const persistBounds = () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    const b = mainWindow.getBounds();
+    saveBounds({ x: b.x, y: b.y, width: b.width, height: b.height });
+  };
+  mainWindow.on('move', persistBounds);
+  mainWindow.on('resize', persistBounds);
+  mainWindow.on('close', persistBounds);
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+}
+
+type SavedBounds = { x: number; y: number; width: number; height: number };
+
+const HUD_STATE_PATH = path.join(app.getPath('userData'), 'hud-window.json');
+
+function loadSavedBounds(): SavedBounds | null {
+  try {
+    const raw = readFileSync(HUD_STATE_PATH, 'utf-8');
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.x !== 'number' || typeof parsed?.y !== 'number' || typeof parsed?.width !== 'number' || typeof parsed?.height !== 'number') {
+      return null;
+    }
+    const bounds: SavedBounds = {
+      x: parsed.x,
+      y: parsed.y,
+      width: parsed.width,
+      height: parsed.height,
+    };
+    const displays = screen.getAllDisplays();
+    const onScreen = displays.some((d) => {
+      const r = d.bounds;
+      return (
+        bounds.x + bounds.width > r.x &&
+        bounds.x < r.x + r.width &&
+        bounds.y + bounds.height > r.y &&
+        bounds.y < r.y + r.height
+      );
+    });
+    return onScreen ? bounds : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveBounds(bounds: SavedBounds) {
+  try {
+    mkdirSync(path.dirname(HUD_STATE_PATH), { recursive: true });
+    writeFileSync(HUD_STATE_PATH, JSON.stringify(bounds), 'utf-8');
+  } catch {
+    // ignore
+  }
 }
 
 export function registerHudIpc() {
@@ -69,5 +122,15 @@ export function registerHudIpc() {
   ipcMain.handle('hud:close', (event) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (win) win.close();
+  });
+  ipcMain.on('hud:focusFrontField', (event) => {
+    const senderId = event.sender.id;
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (win.webContents.id === senderId) continue; // skip HUD itself
+      if (win.isMinimized()) win.restore();
+      if (!win.isVisible()) win.show();
+      win.focus();
+      win.webContents.send('hud:focusFrontField');
+    }
   });
 }

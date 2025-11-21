@@ -115,6 +115,7 @@ interface ApiBridge {
     minimizeHud: () => Promise<void>;
     closeHud: () => Promise<void>;
     maximizeHud: () => Promise<void>;
+    focusFrontField: () => void;
   };
   draftSync: {
     publish: (payload: { frontHtml: string; backHtml: string }) => void;

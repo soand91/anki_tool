@@ -95,6 +95,15 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
     setField(side, html);
   };
 
+  useEffect(() => {
+    const handler = () => {
+      if (typeof window !== 'undefined') window.focus();
+      frontRef.current?.focus();
+    };
+    window.addEventListener('hud:focusFrontField', handler);
+    return () => window.removeEventListener('hud:focusFrontField', handler);
+  }, []);
+
   const isDraftDirty = (() => {
     const hasFront = (draft.frontHtml ?? '').trim().length > 0;
     const hasBack = (draft.backHtml ?? '').trim().length > 0;
@@ -206,10 +215,10 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
             <h2 className="truncate text-sm font-semibold text-zinc-800 dark:text-zinc-300">Note Preview</h2>
             <button
               onClick={() => (window as any).api.hud.openHud()}
-              className="flex items-center justify-center p-1 hover:opacity-80 transition-opacity"
+              className="flex items-center justify-center hover:opacity-80 transition-opacity"
               title="Open HUD"
             >
-              <img src={openHudIcon} alt="Open HUD" className="h-4 w-4" />
+              <img src={openHudIcon} alt="Open HUD" className="h-3 w-3" />
             </button>
           </div>
           <span className="truncate text-[11px] text-zinc-500 dark:text-zinc-400" title={deckLabel}>

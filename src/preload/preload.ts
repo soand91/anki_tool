@@ -174,6 +174,7 @@ const hud = {
   minimizeHud: () => ipcRenderer.invoke('hud:minimize'),
   closeHud: () => ipcRenderer.invoke('hud:close'),
   maximizeHud: () => ipcRenderer.invoke('hud:maximizeOrRestore'),
+  focusFrontField: () => ipcRenderer.send('hud:focusFrontField'),
 };
 
 const draftSync = {
@@ -191,6 +192,15 @@ const draftSync = {
 ipcRenderer.on('settings:themeModeChanged', (_evt, mode) => {
   try {
     const evt = new CustomEvent('settings:themeModeChanged', { detail: mode });
+    window.dispatchEvent(evt);
+  } catch {
+    // ignore
+  }
+});
+
+ipcRenderer.on('hud:focusFrontField', () => {
+  try {
+    const evt = new Event('hud:focusFrontField');
     window.dispatchEvent(evt);
   } catch {
     // ignore

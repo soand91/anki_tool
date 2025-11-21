@@ -71,7 +71,16 @@ export function HudApp() {
         {/* HUD content*/}
         <div className='px-2 relative flex-1 min-h-0 w-full overflow-hidden text-zinc-600 dark:text-zinc-400'>
           {/* Field wrappers */}
-          <div className='group relative text-xs h-full w-full py-1 flex flex-col gap-1'>
+          <div
+            className='group relative text-xs h-full w-full py-1 flex flex-col gap-1'
+            onDoubleClick={() => {
+              try {
+                window.api?.hud?.focusFrontField?.();
+              } catch {
+                // ignore
+              }
+            }}
+          >
             {/* Front */}
             <div className='cursor-pointer flex-1 min-h-0 rounded-xl border border-zinc-200 dark:border-zinc-950 px-1.5 py-1.5'>
               <div className='h-full leading-[1.25] overflow-hidden'>
