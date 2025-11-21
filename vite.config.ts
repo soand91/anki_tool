@@ -5,9 +5,11 @@ import { fileURLToPath } from 'node:url';
 
 const rootDir = fileURLToPath(new URL('./src/renderer', import.meta.url));
 
-// we build the renderer to an internal dist (Vite's defualt), then copy over to ../dist/renderer at build
-export default defineConfig({
+// we build the renderer to dist/renderer for Electron. Use relative base in build
+// so file:// loads in packaged app resolve assets correctly.
+export default defineConfig(({ command }) => ({
   plugins: [react()],
+  base: command === 'serve' ? '/' : './',
   resolve: {
     alias: {
       '@renderer': fileURLToPath(new URL("./src/renderer", import.meta.url)),
@@ -25,4 +27,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));
