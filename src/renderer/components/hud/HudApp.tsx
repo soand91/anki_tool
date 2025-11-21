@@ -62,11 +62,37 @@ export function HudApp() {
     return () => { if (typeof unsub === 'function') unsub(); };
   }, []);
 
+  const [lastHotkey, setLastHotkey] = useState<string | null>(null);
+  useEffect(() => {
+    const unsub = window.api?.noteHotkeys?.onFired?.((p) => {
+      if (!p?.actionId) return;
+      setLastHotkey(p.actionId);
+    });
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ actionId?: string }>).detail;
+      if (!detail?.actionId) return;
+      setLastHotkey(detail.actionId);
+    };
+    window.addEventListener('hotkey:fired', handler);
+    return () => {
+      if (typeof unsub === 'function') unsub();
+      window.removeEventListener('hotkey:fired', handler);
+    };
+  }, []);
+
+  const hotkeyLabel = lastHotkey ? ({
+    'app.showWindow': 'Show Window',
+    'note.captureFront': 'Capture Front',
+    'note.captureBack': 'Capture Back',
+    'note.add': 'Add Note',
+    'note.undoCapture': 'Undo Capture',
+  } as Record<string, string>)[lastHotkey] ?? lastHotkey : undefined;
+
   return (
     <>
       <div className='relative flex flex-col h-screen w-screen items-center justify-center bg-zinc-50 dark:bg-[#323232]'>
         <div className='hud-titlebar-wrap relative w-full flex-none'>
-          <TitleBar />
+          <TitleBar hotkeyLabel={hotkeyLabel} />
         </div>
         {/* HUD content*/}
         <div className='px-2 relative flex-1 min-h-0 w-full overflow-hidden text-zinc-600 dark:text-zinc-400'>
@@ -122,9 +148,6 @@ export function HudApp() {
           height: 1px;
           background: rgba(0, 0, 0, 0.08);
           pointer-events: none;
-        }
-        .dark .hud-titlebar-wrap::after {
-          background: rgba(255, 255, 255, 0.1);
         }
       `}</style>
     </>

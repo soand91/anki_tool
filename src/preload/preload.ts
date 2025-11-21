@@ -139,6 +139,11 @@ const settings = {
       ipcRenderer.on('note:hotkeysChanged', wrapped);
       return () => ipcRenderer.off('note:hotkeysChanged', wrapped);
     },
+    onFired: (handler: (data: { actionId: string; at?: number }) => void) => {
+      const wrapped = (_e: IpcRendererEvent, data: any) => handler(data);
+      ipcRenderer.on('hotkey:fired', wrapped);
+      return () => ipcRenderer.off('hotkey:fired', wrapped);
+    },
   },
 };
 
@@ -192,6 +197,15 @@ const draftSync = {
 ipcRenderer.on('settings:themeModeChanged', (_evt, mode) => {
   try {
     const evt = new CustomEvent('settings:themeModeChanged', { detail: mode });
+    window.dispatchEvent(evt);
+  } catch {
+    // ignore
+  }
+});
+
+ipcRenderer.on('hotkey:fired', (_evt, data) => {
+  try {
+    const evt = new CustomEvent('hotkey:fired', { detail: data });
     window.dispatchEvent(evt);
   } catch {
     // ignore

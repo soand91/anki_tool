@@ -4,10 +4,12 @@ import path from 'node:path';
 import { isDev } from '../env';
 import { dlog } from "./utils";
 
+const DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5173';
+
 let mainWindow: BrowserWindow | null = null;
 
 function getPreloadPath() {
-  // resolve relative to dist/main/hud → dist/preload/preload.js
+  // resolve relative to dist/main/hud -> dist/preload/preload.js
   const p = path.resolve(__dirname, '../../preload/preload.js');
   if (!existsSync(p)) console.error('[hud] preload not found at:', p);
   return p;
@@ -15,7 +17,7 @@ function getPreloadPath() {
 
 function loadHudUrl(win: BrowserWindow) {
   if (isDev) {
-    win.loadURL('http://localhost:5173/components/hud/index.html');
+    win.loadURL(new URL('components/hud/index.html', DEV_SERVER_URL).toString());
     return;
   }
   const hudHtml = path.resolve(__dirname, '../../renderer/components/hud/index.html');

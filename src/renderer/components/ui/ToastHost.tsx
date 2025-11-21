@@ -52,7 +52,7 @@ export default function ToastHost() {
   if (!toasts.length) return null;
 
   return (
-    <div className="pointer-events-none fixed top-2 right-2 z-[80] flex w-[280px] flex-col gap-2">
+    <div className="pointer-events-none fixed top-2 right-3 z-[80] flex w-[280px] flex-col gap-2">
       {toasts.map((t) => (
         <ToastItem key={t.id} data={t} />
       ))}

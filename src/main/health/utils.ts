@@ -1,4 +1,5 @@
 import { HealthReport, HealthCheckResult } from '../../shared/health/types';
+import { isDev } from '../env';
 
 // sleep
 export function sleep(ms: number) { return new Promise(res => setTimeout(res, ms)); }
@@ -11,6 +12,7 @@ export function jitter(baseMs: number, pct = 0.2) {
 
 // logger
 export function dlog(...args: any[]) {
+  if (!isDev) return;
   console.debug('[health]', ...args);
 }
 

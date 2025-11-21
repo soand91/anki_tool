@@ -201,6 +201,9 @@ export class HotkeyRegistry {
   private fire(id: HotkeyActionId) {
     if (this.suspended) return;
     if (!this.win) return;
+    for (const win of BrowserWindow.getAllWindows()) {
+      win.webContents.send('hotkey:fired', { actionId: id, at: Date.now() });
+    }
     switch (id) {
       case 'app.showWindow': {
         const w = this.win;

@@ -1,7 +1,11 @@
 // src/renderer/components/chrome/TitleBar.tsx
 import React from 'react'
 
-export function TitleBar() {
+type Props = {
+  hotkeyLabel?: string;
+};
+
+export function TitleBar({ hotkeyLabel }: Props) {
   const handleMinimize = () => window.api.hud.minimizeHud?.()
   const handleClose = () => window.api.hud.closeHud?.()
 
@@ -9,15 +13,15 @@ export function TitleBar() {
     <div className='drag-region flex items-center pl-2 h-5 max-h-5 overflow-hidden dark:bg-neutral-800'>
       {/* Left side: fills remaining space */}
       <div className='flex items-center h-full gap-1 overflow-hidden flex-1 pr-1'>
-        <span className='flex items-center h-full text-xs leading-none text-zinc-900 dark:text-zinc-300 select-none whitespace-nowrap'>
+        <span className='flex items-center h-full text-xs leading-none text-zinc-500 dark:text-zinc-300 select-none whitespace-nowrap'>
           Last Key:
         </span>
-        <span className='flex items-center h-full text-[11px] leading-none text-zinc-700 dark:text-zinc-300 select-none whitespace-nowrap overflow-hidden max-w-[10ch]'>
-          Undo Last Capture
+        <span className='flex items-center h-full text-xs leading-none text-zinc-900 dark:text-zinc-300 select-none whitespace-nowrap overflow-hidden'>
+          {hotkeyLabel || '—'}
         </span>
-        <span className='ml-auto flex items-center h-full text-[11px] leading-none text-zinc-700 dark:text-zinc-300 select-none whitespace-nowrap overflow-hidden max-w-[8ch]'>
+        {/* <span className='ml-auto flex items-center h-full text-[11px] leading-none text-zinc-700 dark:text-zinc-300 select-none whitespace-nowrap overflow-hidden'>
           Check
-        </span>
+        </span> */}
       </div>
       {/* Right side: window controls */}
       <div className='flex items-center no-drag shrink-0'>

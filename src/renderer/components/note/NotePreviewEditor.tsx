@@ -218,7 +218,7 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
               className="flex items-center justify-center hover:opacity-80 transition-opacity"
               title="Open HUD"
             >
-              <img src={openHudIcon} alt="Open HUD" className="h-3 w-3" />
+              <img src={openHudIcon} alt="Open HUD" className="h-3 w-3 invert-0 dark:invert" />
             </button>
           </div>
           <span className="truncate text-[11px] text-zinc-500 dark:text-zinc-400" title={deckLabel}>
@@ -367,7 +367,7 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
                   + Add tag
                 </button>
               ) : (
-                <div className='hover:border-zinc-500 hover:bg-zinc-100 transitional-all duration-200 dark:hover:bg-[#323232] dark:hover:border-zinc-600 flex items-center gap-1 rounded-full border border-zinc-300 bg-white px-2 py-1 dark:bg-zinc-800 dark:border-zinc-950'>
+                <div className='hover:border-zinc-500 hover:bg-zinc-100 transition-all duration-200 dark:hover:bg-[#323232] dark:hover:border-zinc-600 flex items-center gap-1 rounded-full border border-zinc-300 bg-white px-2 py-1 dark:bg-zinc-800 dark:border-zinc-950'>
                   <input 
                     className='w-20 bg-transparent text-xs outline-none dark:text-zinc-300 dark:placeholder:text-zinc-500 dark:caret-zinc-100'
                     value={newTag}

@@ -62,6 +62,7 @@ interface ApiBridge {
     suspend: (on: boolean) => Promise<void>;
     onChanged: (handler: (data: any) => void) => () => void;
     onOpenPanel: (handler: () => void) => () => void;
+    onFired: (handler: (data: { actionId: string; at?: number }) => void) => () => void;
   };
   settings: {
     onOpen: (cb: (payload?: any) => void) => () => void;

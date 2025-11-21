@@ -3,6 +3,23 @@
   "version": "1.0.0",
   "description": "",
   "main": "dist/main/main.js",
+  "build": {
+    "appId": "com.yourname.ankitool",
+    "productName": "Anki Tool",
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "buildResources": "build"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    }
+  },
   "scripts": {
     "dev:ts": "tsc --watch",
     "dev:css": "npx @tailwindcss/cli -i ./src/renderer/input.css -o ./dist/renderer/output.css --watch",
@@ -12,14 +29,14 @@
     "dev": "concurrently -k \"npm:dev:*\"",
     "build:ts": "tsc",
     "build:vite": "vite build",
-    "build:copy": "node scripts/postbuild-copy.mjs",
     "build:preload": "esbuild src/preload/preload.ts --platform=node --external:electron --format=cjs --bundle --outfile=dist/preload/preload.js",
-    "build": "npm run build:ts && npm run build:vite && npm run build:copy",
-    "start": "npm run build && electron ./dist/main.js",
+    "build": "npm run clean && npm run build:ts && npm run build:vite && npm run build:preload",
+    "start": "npm run build && electron ./dist/main/main.js",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watchAll",
     "test:cov": "jest --coverage",
-    "clean": "rimraf dist"
+    "clean": "rimraf dist",
+    "dist": "npm run build && electron-builder"
   },
   "keywords": [],
   "author": "",
@@ -40,6 +57,7 @@
     "copyfiles": "^2.4.1",
     "cross-env": "^10.1.0",
     "electron": "^39.0.0",
+    "electron-builder": "^26.0.12",
     "electron-vite": "^4.0.1",
     "electronmon": "^2.0.4",
     "eslint": "^9.38.0",

@@ -17,7 +17,7 @@ import { PANEL_LAYOUT_PRESET_CHANGED_EVENT, THEME_MODE_CHANGED_EVENT } from './s
 import ToastHost from './components/ui/ToastHost'
 
 export function App() {
-  const { idle, waking } = useIdleSleep({ idleMs: 10_000, pollIntervalMs: 8000 });
+  const { idle, waking } = useIdleSleep({ idleMs: 3*60_000, pollIntervalMs: 8000 });
   const {
     rows,
     overall,

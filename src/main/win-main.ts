@@ -4,6 +4,8 @@ import { isDev } from './env';
 import { join } from 'node:path';
 import { existsSync } from 'fs';
 
+const DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5173';
+
 function getPreloadPath() {
   // Dev: we build preload to dist/preload/preload.js
   // Prod: main code runs from dist/main, so go up one and into ../preload/preload.js
@@ -25,7 +27,7 @@ export function createMainWindow() {
   });
 
   if (isDev) {
-    win.loadURL('http://localhost:5173');
+    win.loadURL(DEV_SERVER_URL);
     win.webContents.openDevTools({ mode: 'detach' });
   } else {
     win.loadFile(path.join(__dirname, 'renderer', 'index.html'));

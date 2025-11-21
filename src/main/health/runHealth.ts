@@ -317,7 +317,7 @@ export async function ensureHealthyOrThrow(opts?: {
     if (!allowProceedIfStale) {
       // block if you configured no-stale proceeds
       dlog('gate:stale:block');
-      throw new Error('Checking Anki status… please try again in a moment.');
+      throw new Error('Checking Anki status... please try again in a moment.');
     }
     // proceed optimistically
     dlog('gate:stale:proceed');

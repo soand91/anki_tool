@@ -9,7 +9,6 @@ import {
 } from '../../state/deckStore';
 import Button from '../ui/Button';
 import { useUiStore } from '../../state/ui';
-import { useHealthChecks } from '../../hooks/useHealthChecks';
 
 function timeAgo(ts: number): string {
   if (!ts) return 'never';
@@ -24,9 +23,6 @@ function timeAgo(ts: number): string {
 
 export default function DeckDisplay() {
   const openHealthModal = useUiStore(s => s.openHealthModal);
-  const {
-    runAllChecks
-  } = useHealthChecks()
   // read only selectors
   const decks = useAllDecks();
   const selectedId = useSelectedDeckId();
@@ -305,8 +301,6 @@ export default function DeckDisplay() {
           onClick={() => {
             if (typeof (window as any).api?.health?.runAllChecks === 'function') {
               (window as any).api.health.runAllChecks().catch(() => {});
-            } else {
-              runAllChecks();
             }
             openHealthModal();
           }}
