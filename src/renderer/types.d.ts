@@ -114,5 +114,10 @@ interface ApiBridge {
     openHud: () => Promise<void>;
     minimizeHud: () => Promise<void>;
     closeHud: () => Promise<void>;
+    maximizeHud: () => Promise<void>;
+  };
+  draftSync: {
+    publish: (payload: { frontHtml: string; backHtml: string }) => void;
+    onUpdate: (handler: (payload: { frontHtml: string; backHtml: string }) => void) => () => void;
   };
 }

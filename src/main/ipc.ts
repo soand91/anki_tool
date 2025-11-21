@@ -7,6 +7,7 @@ import { registerSettingsIpc } from './settings/hub';
 import { registerHistoryIpc } from './history/runHistory';
 import { registerCardFlowIpc } from './state/cardFlowIpc';
 import { registerHudIpc } from './hud/runHud';
+import { registerDraftSyncIpc } from './state/draftSync';
 
 export function registerIpc() {
   log.info("[main] registerIpc()");
@@ -17,4 +18,5 @@ export function registerIpc() {
   registerHistoryIpc();
   registerCardFlowIpc();
   registerHudIpc();
+  registerDraftSyncIpc();
 }

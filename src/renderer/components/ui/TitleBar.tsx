@@ -12,10 +12,10 @@ export function TitleBar() {
         <span className='flex items-center h-full text-xs leading-none text-zinc-900 dark:text-zinc-300 select-none whitespace-nowrap'>
           Last Key:
         </span>
-        <span className='bg-red-200 flex items-center h-full text-[11px] leading-none text-zinc-700 dark:text-zinc-300 select-none whitespace-nowrap overflow-hidden'>
+        <span className='flex items-center h-full text-[11px] leading-none text-zinc-700 dark:text-zinc-300 select-none whitespace-nowrap overflow-hidden max-w-[10ch]'>
           Undo Last Capture
         </span>
-        <span className='bg-green-200 ml-auto flex items-center h-full text-[11px] leading-none text-zinc-700 dark:text-zinc-300 select-none whitespace-nowrap overflow-hidden'>
+        <span className='ml-auto flex items-center h-full text-[11px] leading-none text-zinc-700 dark:text-zinc-300 select-none whitespace-nowrap overflow-hidden max-w-[8ch]'>
           Check
         </span>
       </div>

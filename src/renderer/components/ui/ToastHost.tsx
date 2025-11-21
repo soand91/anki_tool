@@ -33,7 +33,7 @@ function ToastItem({ data }: { data: Toast }) {
         <div className="text-sm">{data.message}</div>
       </button>
       <button
-        className="absolute right-1 top-1 rounded-full p-1 text-xs text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+        className="flex items-center justify-center leading-[1.25] -mt-[0.22em] absolute right-1 top-0.5 rounded-full p-1 text-xs text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
         onClick={(e) => {
           e.stopPropagation();
           toast.dismiss(data.id);

@@ -5,6 +5,10 @@ import TitleBar from '../ui/TitleBar';
 
 export function HudApp() {
   const [themeMode, setThemeMode] = useState<ThemeMode>('system');
+  const [draftPreview, setDraftPreview] = useState<{ frontHtml: string; backHtml: string }>({
+    frontHtml: '',
+    backHtml: '',
+  });
 
   // Load and apply stored theme preference
   useEffect(() => {
@@ -47,6 +51,17 @@ export function HudApp() {
     return () => mq.removeEventListener('change', listener);
   }, [themeMode]);
 
+  // Subscribe to draft updates from the main window (read-only)
+  useEffect(() => {
+    const unsub = window.api?.draftSync?.onUpdate?.((payload) => {
+      setDraftPreview({
+        frontHtml: payload?.frontHtml ?? '',
+        backHtml: payload?.backHtml ?? '',
+      });
+    });
+    return () => { if (typeof unsub === 'function') unsub(); };
+  }, []);
+
   return (
     <>
       <div className='relative flex flex-col h-screen w-screen items-center justify-center bg-zinc-50 dark:bg-[#323232]'>
@@ -60,17 +75,19 @@ export function HudApp() {
             {/* Front */}
             <div className='cursor-pointer flex-1 min-h-0 rounded-xl border border-zinc-200 dark:border-zinc-950 px-1.5 py-1.5'>
               <div className='h-full leading-[1.25] overflow-hidden'>
-                <div className='break-words -mt-[0.22em]'>
-                  Front Preview
-                </div>
+                <div
+                  className='break-words -mt-[0.22em]'
+                  dangerouslySetInnerHTML={{ __html: draftPreview.frontHtml || '<span class="text-zinc-400 dark:text-zinc-500">Front empty</span>' }}
+                />
               </div>
             </div>
             {/* Back */}
             <div className='cursor-pointer flex-1 min-h-0 rounded-xl border border-zinc-200 dark:border-zinc-950 px-1.5 py-1.5'>
               <div className='h-full leading-[1.25] overflow-hidden'>
-                <div className='break-words -mt-[0.22em]'>
-                  Back Preview
-                </div>
+                <div
+                  className='break-words -mt-[0.22em]'
+                  dangerouslySetInnerHTML={{ __html: draftPreview.backHtml || '<span class="text-zinc-400 dark:text-zinc-500">Back empty</span>' }}
+                />
               </div>
             </div>
             <div className='dark:outline-1 dark:outline-zinc-500 pointer-events-none absolute bottom-2 right-1 select-none rounded bg-zinc-700/90 px-2 py-1 text-[10px] text-zinc-200 opacity-0 transition-opacity duration-250 group-hover:opacity-100'>

@@ -54,6 +54,15 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
 
   useEffect(() => {
     draftContentRef.current = { frontHtml: draft.frontHtml, backHtml: draft.backHtml };
+    // broadcast draft edits to other renderer windows (e.g., HUD)
+    try {
+      window.api?.draftSync?.publish?.({
+        frontHtml: draft.frontHtml ?? '',
+        backHtml: draft.backHtml ?? '',
+      });
+    } catch {
+      // ignore broadcast failures
+    }
   }, [draft.frontHtml, draft.backHtml]);
 
   // keep contentEditable in sync with store

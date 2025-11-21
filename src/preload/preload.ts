@@ -176,6 +176,17 @@ const hud = {
   maximizeHud: () => ipcRenderer.invoke('hud:maximizeOrRestore'),
 };
 
+const draftSync = {
+  publish: (payload: { frontHtml: string; backHtml: string }) => {
+    ipcRenderer.send('draft:publish', payload);
+  },
+  onUpdate: (handler: (p: { frontHtml: string; backHtml: string }) => void) => {
+    const wrapped = (_e: IpcRendererEvent, data: any) => handler(data);
+    ipcRenderer.on('draft:update', wrapped);
+    return () => ipcRenderer.off('draft:update', wrapped);
+  }
+};
+
 // Broadcasts from main process → renderer windows
 ipcRenderer.on('settings:themeModeChanged', (_evt, mode) => {
   try {
@@ -197,6 +208,7 @@ contextBridge.exposeInMainWorld('api', {
   history,
   cardFlow,
   hud,
+  draftSync,
 });
 
 contextBridge.exposeInMainWorld('env', {

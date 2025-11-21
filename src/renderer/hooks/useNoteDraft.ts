@@ -76,6 +76,11 @@ function sanitizeHtml(input: string): string {
   }
 }
 
+function stripTrailingSpaceAndBreaks(html: string): string {
+  // remove trailing <br>, whitespace, and &nbsp; runs
+  return (html || '').replace(/(?:<br\s*\/?>|&nbsp;|\s)+$/gi, '');
+}
+
 // hook
 export function useNoteDraft() {
   // raw state/selectors
@@ -100,7 +105,7 @@ export function useNoteDraft() {
   // sanitized setters
   const setField = useCallback(
     (side: 'front' | 'back', html: string) => {
-      const clean = sanitizeHtml(html);
+      const clean = stripTrailingSpaceAndBreaks(sanitizeHtml(html));
       setFieldRaw(side, clean);
     },
     [setFieldRaw]
@@ -110,12 +115,13 @@ export function useNoteDraft() {
   const appendToField = useCallback(
     (side: 'front' | 'back', htmlFragment:string) => {
       const current = side === 'front' ? draft.frontHtml : draft.backHtml;
-      const fragment = sanitizeHtml(htmlFragment);
+      const fragment = stripTrailingSpaceAndBreaks(sanitizeHtml(htmlFragment));
+      const trimmedCurrent = stripTrailingSpaceAndBreaks(current || '');
       const next = 
-        current && current.trim().length > 0
-          ? `${current}<br><br>${fragment}`
+        trimmedCurrent.length > 0
+          ? fragment.length > 0 ? `${trimmedCurrent}<br>${fragment}` : trimmedCurrent
           : fragment;
-        setField(side, next);
+      setField(side, next);
     },
     [draft.frontHtml, draft.backHtml, setField]
   );

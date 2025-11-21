@@ -4,7 +4,7 @@ import { useNoteDraft } from "./useNoteDraft";
 type UndoRecord = { side: 'front' | 'back'; previousHtml: string };
 
 export function useNoteCapture() {
-  const { sanitizeHtml, setField, draft } = useNoteDraft();
+  const { sanitizeHtml, setField, appendToField, draft } = useNoteDraft();
   const undoStackRef = useRef<UndoRecord[]>([]);
 
   useEffect(() => {
@@ -17,11 +17,8 @@ export function useNoteCapture() {
       const fragment = sanitizeHtml(data.html || '');
       if (!fragment.trim()) return;
 
-      const sep = previous.trim().length > 0 ? '<br><br>' : '';
-      const next = sanitizeHtml(`${previous}${sep}${fragment}`);
-      if (next === previous) return;
-
-      setField(data.side, next);
+      // append with single break and trim trailing breaks
+      appendToField(data.side, fragment);
       undoStackRef.current.push({ side: data.side, previousHtml: previous });
     });
 
@@ -35,7 +32,7 @@ export function useNoteCapture() {
       if (typeof unsubCapture === 'function') unsubCapture();
       if (typeof unsubUndo === 'function') unsubUndo();
     };
-  }, [draft.frontHtml, draft.backHtml, setField, sanitizeHtml]);
+  }, [draft.frontHtml, draft.backHtml, appendToField, setField, sanitizeHtml]);
 
   useEffect(() => {
     const hasFront = Boolean(draft.frontHtml && draft.frontHtml.trim().length > 0);
