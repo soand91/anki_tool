@@ -4,6 +4,7 @@ import { useDeckStore } from '../../state/deckStore';
 import Button from '../ui/Button';
 import { toast } from '../../state/toastStore';
 import { playAddNoteSound } from '../../sound/addNoteSounds';
+import openHudIcon from '../../assets/open-in-new-window-button-1-svgrepo-com.svg';
 
 function hasMeaningfulContent(html?: string | null): boolean {
   if (!html) return false;
@@ -203,7 +204,13 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
         <div className="flex flex-1 flex-col min-w-0 flex-shrink overflow-hidden">
           <div className='flex gap-2'>
             <h2 className="truncate text-sm font-semibold text-zinc-800 dark:text-zinc-300">Note Preview</h2>
-            <button onClick={() => (window as any).api.hud.openHud()}>Open HUD</button>
+            <button
+              onClick={() => (window as any).api.hud.openHud()}
+              className="flex items-center justify-center p-1 hover:opacity-80 transition-opacity"
+              title="Open HUD"
+            >
+              <img src={openHudIcon} alt="Open HUD" className="h-4 w-4" />
+            </button>
           </div>
           <span className="truncate text-[11px] text-zinc-500 dark:text-zinc-400" title={deckLabel}>
             Selected Deck: {deckLabel}
