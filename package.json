@@ -10,10 +10,6 @@
   "build": {
     "appId": "com.yourname.ankitool",
     "productName": "Anki Tool",
-    "files": [
-      "dist/**/*",
-      "package.json"
-    ],
     "extraResources": [
       {
         "from": "assets",
@@ -21,6 +17,7 @@
       }
     ],
     "directories": {
+      "output": "release",
       "buildResources": "build"
     },
     "win": {
@@ -54,7 +51,35 @@
       "synopsis": "Anki Tool",
       "maintainer": "you@example.com"
     },
-    "electronVersion": "39.0.0"
+    "electronVersion": "39.0.0",
+    "electronLanguages": [
+      "en-US"
+    ],
+    "files": [
+      "dist/main/**",
+      "dist/preload/**",
+      "dist/renderer/**",
+      "dist/shared/**",
+      "package.json",
+      "node_modules/**",
+      "!**/*.map",
+      "!**/*.ts",
+      "!**/test/**",
+      "!**/tests/**",
+      "!**/*.spec.*",
+      "!**/.git/**",
+      "!**/.vscode/**",
+      "!**/coverage/**",
+      "!**/.cache/**",
+      "!**/docs/**",
+      "!**/scripts/**"
+    ],
+    "asar": {
+      "smartUnpack": true
+    },
+    "extraMetadata": {
+      "debug": false
+    }
   },
   "scripts": {
     "dev:ts": "tsc --watch",
@@ -72,7 +97,7 @@
     "test:watch": "jest --watchAll",
     "test:cov": "jest --coverage",
     "clean": "npx rimraf dist",
-    "dist": "npm install && npm run build && npm prune --omit=dev && npx electron-builder && npm install"
+    "dist": "npm install && npm run build && npm prune --omit=dev && npx electron-builder"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.1.16",
