@@ -49,7 +49,11 @@
       ],
       "category": "Utility",
       "synopsis": "Anki Tool",
-      "maintainer": "you@example.com"
+      "maintainer": "you@example.com",
+      "icon": "build/icon.png"
+    },
+    "appImage": {
+      "systemIntegration": "doNotAsk"
     },
     "electronVersion": "39.0.0",
     "electronLanguages": [
