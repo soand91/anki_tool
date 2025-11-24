@@ -50,7 +50,8 @@
       "category": "Utility",
       "synopsis": "Anki Tool",
       "maintainer": "you@example.com",
-      "icon": "build/icon.png"
+      "icon": "build/icon.png",
+      "setuidSandbox": false
     },
     "electronVersion": "39.0.0",
     "electronLanguages": [
@@ -80,8 +81,7 @@
     },
     "extraMetadata": {
       "debug": false
-    },
-    "afterPack": "scripts/afterPack.js"
+    }
   },
   "scripts": {
     "dev:ts": "tsc --watch",
