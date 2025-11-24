@@ -5,6 +5,7 @@ import { buildTrayMenu } from './trayMenu';
 import { buildAppMenu } from './appMenu';
 import { setupTray } from './tray';
 import { registerIpc } from './ipc';
+import { toggleHudWindow } from './hud/runHud';
 import { runAllChecks } from './health/runHealth';
 import { initMainLogging, log } from './log';
 import { hotkeys } from './settings/hotkey.store';
@@ -89,6 +90,14 @@ if (!single) {
       onOpenSettings: () => {
         if (!mainWindow) return;
         showMain(mainWindow);
+        mainWindow.webContents.send('open-settings', { section: 'general' });
+      },
+      onToggleHud: () => {
+        try {
+          toggleHudWindow();
+        } catch {
+          // ignore HUD toggle failures from tray
+        }
       },
       onQuit: quitApp,
     })

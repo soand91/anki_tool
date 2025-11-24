@@ -8,6 +8,10 @@ const DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5173
 
 let mainWindow: BrowserWindow | null = null;
 
+function isHudOpen() {
+  return !!(mainWindow && !mainWindow.isDestroyed());
+}
+
 function getPreloadPath() {
   // resolve relative to dist/main/hud -> dist/preload/preload.js
   const p = path.resolve(__dirname, '../../preload/preload.js');
@@ -65,6 +69,40 @@ function createWindow() {
   });
 }
 
+function revealExistingHud() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.showInactive();
+}
+
+export function openHudWindow() {
+  if (isHudOpen()) {
+    revealExistingHud();
+    return 'existing';
+  }
+  createWindow();
+  return 'created';
+}
+
+export function closeHudWindow() {
+  if (!isHudOpen()) return false;
+  mainWindow!.close();
+  return true;
+}
+
+export function toggleHudWindow() {
+  if (isHudOpen()) {
+    mainWindow!.close();
+    return 'closed';
+  }
+  createWindow();
+  return 'opened';
+}
+
+export function isHudWindowOpen() {
+  return isHudOpen();
+}
+
 type SavedBounds = { x: number; y: number; width: number; height: number };
 
 const HUD_STATE_PATH = path.join(app.getPath('userData'), 'hud-window.json');
@@ -110,12 +148,13 @@ function saveBounds(bounds: SavedBounds) {
 export function registerHudIpc() {
   dlog('ipc:register');
   ipcMain.handle('hud:open', () => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.showInactive();
-      return;
-    }
-    createWindow();
+    openHudWindow();
+  });
+  ipcMain.handle('hud:isOpen', () => {
+    return isHudWindowOpen();
+  });
+  ipcMain.handle('hud:toggle', () => {
+    return toggleHudWindow();
   });
   ipcMain.handle('hud:minimize', (event) => {
     const win = BrowserWindow.fromWebContents(event.sender);

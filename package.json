@@ -1,8 +1,12 @@
 {
   "name": "anki_tool",
+  "author": "Your Name",
   "version": "1.0.0",
-  "description": "",
+  "description": "Temp description",
   "main": "dist/main/main.js",
+  "keywords": [],
+  "license": "ISC",
+  "type": "commonjs",
   "build": {
     "appId": "com.yourname.ankitool",
     "productName": "Anki Tool",
@@ -10,15 +14,47 @@
       "dist/**/*",
       "package.json"
     ],
+    "extraResources": [
+      {
+        "from": "assets",
+        "to": "assets"
+      }
+    ],
     "directories": {
       "buildResources": "build"
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
     },
     "mac": {
-      "target": "dmg"
-    }
+      "target": "dmg",
+      "category": "public.app-category.productivity",
+      "identity": "Developer ID Application: YOUR NAME (TEAMID)",
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "hardenedRuntime": true,
+      "icon": "build/icon.icns"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb",
+        "rpm"
+      ],
+      "category": "Utility",
+      "synopsis": "Anki Tool",
+      "maintainer": "you@example.com"
+    },
+    "electronVersion": "39.0.0"
   },
   "scripts": {
     "dev:ts": "tsc --watch",
@@ -35,13 +71,9 @@
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watchAll",
     "test:cov": "jest --coverage",
-    "clean": "rimraf dist",
-    "dist": "npm run build && electron-builder"
+    "clean": "npx rimraf dist",
+    "dist": "npm install && npm run build && npm prune --omit=dev && npx electron-builder && npm install"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "devDependencies": {
     "@tailwindcss/cli": "^4.1.16",
     "@tailwindcss/line-clamp": "^0.4.4",

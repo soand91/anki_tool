@@ -176,6 +176,8 @@ const cardFlow = {
 
 const hud = {
   openHud: () => ipcRenderer.invoke('hud:open'),
+  toggleHud: () => ipcRenderer.invoke('hud:toggle'),
+  isHudOpen: () => ipcRenderer.invoke('hud:isOpen'),
   minimizeHud: () => ipcRenderer.invoke('hud:minimize'),
   closeHud: () => ipcRenderer.invoke('hud:close'),
   maximizeHud: () => ipcRenderer.invoke('hud:maximizeOrRestore'),

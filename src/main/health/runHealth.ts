@@ -81,17 +81,27 @@ function makeInitialReport(): HealthReport {
 
 function computeOverall(): HealthStatus {
   const statuses = Object.values(current.checks).map(c => c.status);
+  if (statuses.includes('checking')) return 'checking';
 
-  const total = statuses.length;
-  const fails = statuses.filter(s => s === 'error').length;
-  const warns = statuses.filter(s => s === 'warning').length;
-  const checking = statuses.includes('checking');
-  if (checking) return 'checking';
+  let hasLowPriorityError = false;
+  let hasWarning = false;
 
-  if (fails === 0 && warns === 0) return 'ok';
-  if (fails === total) return 'error';
+  // Respect the configured order so the first two checks drive a hard error.
+  for (let i = 0; i < HEALTH_ORDER.length; i++) {
+    const id = HEALTH_ORDER[i];
+    const status = current.checks[id]?.status ?? 'unknown';
+    if (status === 'error') {
+      // First two checks are critical: surface as overall error.
+      if (i === 0 || i === 1) return 'error';
+      hasLowPriorityError = true;
+    } else if (status === 'warning') {
+      hasWarning = true;
+    }
+  }
 
-  return 'warning'
+  if (!hasLowPriorityError && !hasWarning) return 'ok';
+  // Lower-priority errors or any warnings collapse to warning (amber).
+  return 'warning';
 }
 
 function broadcastWithOverall(payload: Record<string, unknown>) {

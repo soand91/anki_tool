@@ -181,6 +181,21 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
     }
   }, [deckName, reset, toSanitizedAnkiPayload]);
 
+  const handleToggleHud = useCallback(async () => {
+    const api = (window as any).api;
+    try {
+      if (api?.hud?.toggleHud) {
+        await api.hud.toggleHud();
+        return;
+      }
+      const isOpen = await api?.hud?.isHudOpen?.();
+      if (isOpen) await api?.hud?.closeHud?.();
+      else await api?.hud?.openHud?.();
+    } catch {
+      // ignore HUD toggle failures
+    }
+  }, []);
+
   const disabled = !canSubmit(ankiconnectHealthy);
 
   useEffect(() => {
@@ -214,7 +229,7 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
           <div className='flex gap-2'>
             <h2 className="truncate text-sm font-semibold text-zinc-800 dark:text-zinc-300">Note Preview</h2>
             <button
-              onClick={() => (window as any).api.hud.openHud()}
+              onClick={handleToggleHud}
               className="flex items-center justify-center hover:opacity-80 transition-opacity"
               title="Open HUD"
             >
