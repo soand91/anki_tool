@@ -79,7 +79,8 @@
     },
     "extraMetadata": {
       "debug": false
-    }
+    },
+    "afterPack": "scripts/afterPack.js"
   },
   "scripts": {
     "dev:ts": "tsc --watch",
