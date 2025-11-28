@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { useNoteDraft } from '../../hooks/useNoteDraft';
+import { recordManualUndoSnapshot } from '../../hooks/useNoteCapture';
 import { useDeckStore } from '../../state/deckStore';
 import Button from '../ui/Button';
 import { toast } from '../../state/toastStore';
@@ -92,6 +93,8 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
 
   const handleInput = (side: 'front' | 'back') => (e: React.FormEvent<HTMLDivElement>) => {
     const html = (e.currentTarget as HTMLDivElement).innerHTML || '';
+    const previous = side === 'front' ? (draft.frontHtml || '') : (draft.backHtml || '');
+    recordManualUndoSnapshot(side, previous);
     setField(side, html);
   };
 
