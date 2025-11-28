@@ -50,8 +50,7 @@
       "category": "Utility",
       "synopsis": "Anki Tool",
       "maintainer": "you@example.com",
-      "icon": "build/icon.png",
-      "setuidSandbox": false
+      "icon": "build/icon.png"
     },
     "electronVersion": "39.0.0",
     "electronLanguages": [

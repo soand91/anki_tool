@@ -1,5 +1,6 @@
 node_modules
 dist
 out
+release
 .DS_store
 TEMP_assets_photoshop

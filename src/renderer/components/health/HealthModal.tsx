@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { HealthReport, HealthStatus, HealthCheckResult } from '../../../shared/health/types';
 import { mapFriendly } from './utils';
+import Button from '../ui/Button';
 
 type Props = {
   isOpen: boolean;
@@ -36,10 +37,6 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false, onLi
           const initial = await window.api?.health.getHealthReport();
           setLiveReport(initial);
         } catch {}
-        // try {
-        //   // start polling & subscribe to pushes
-        //   await window.api?.startHealthPolling(8000);
-        // } catch {}
         unsub = window.api?.health.onUpdate((msg: any) => {
           if (msg?.type === 'END_CHECK' || msg?.type === 'BEGIN_CHECK') {
             window.api?.health.getHealthReport().then(setLiveReport).catch(() => {});
@@ -48,7 +45,6 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false, onLi
       })();
       return () => {
         unsub?.();
-        // window.api.stopHealthPolling().catch(() => {});
       };
     } else {
       // snapshot mode
@@ -57,7 +53,6 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false, onLi
       (async () => {
         try {
           // do not keep polling in snapshot mode
-          // await window.api?.stopHealthPolling().catch(() => {});
           const rep = await window.api?.health.runAll();
           setSnapshot(rep);
           setAsOf(Date.now());
@@ -100,9 +95,9 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false, onLi
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl ring-1 ring-zinc-200">
+      <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl ring-1 ring-zinc-200 dark:bg-[#323232] dark:text-zinc-300 dark:ring-zinc-600">
         {/* Header */}
-        <div className="flex items-center justify-between border-b px-3 py-2">
+        <div className="flex items-center justify-between border-b px-3 py-2 dark:border-zinc-600">
           <div className="flex items-center gap-3">
             <h2 className="text-lg font-semibold">System Health</h2>
             <span className={`rounded-full border px-2 py-0.5 text-xs ${statusToClasses(reportToShow?.overall ?? 'unknown')}`}>
@@ -112,7 +107,7 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false, onLi
           <div className="flex items-center gap-5">
             {/* Snapshot timestamp / Live pill */}
             {live ? (
-              <span className="text-xs font-medium rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-emerald-700">
+              <span className="text-xs font-medium rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-emerald-700 dark:border-emerald-500/60 dark:bg-emerald-900/30 dark:text-emerald-200">
                 LIVE
               </span>
             ) : (
@@ -123,25 +118,25 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false, onLi
 
             {/* Live toggle */}
             <label className="flex items-center gap-2 cursor-pointer select-none" title="Toggle between snapshot and live updates">
-              <span className="text-xs text-zinc-600">Live</span>
+              <span className="text-xs text-zinc-600 dark:text-zinc-500">Live</span>
               <input
                 type="checkbox"
                 className="peer sr-only"
                 checked={live}
                 onChange={(e) => onToggleLive(e.target.checked)}
               />
-              <span className="block h-5 w-9 rounded-full bg-zinc-300 peer-checked:bg-emerald-500 relative transition-colors duration-200 [&>span]:transition-transform [&>span]:duration-200 peer-checked:[&>span]:translate-x-4">
-                <span className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white" />
+              <span className="block h-5 w-9 rounded-full bg-zinc-300 dark:bg-zinc-700 peer-checked:bg-emerald-500 peer-checked:dark:bg-emerald-500/80 ring-1 ring-inset ring-zinc-400/70 dark:ring-zinc-500/60 relative transition-colors duration-200 [&>span]:transition-transform [&>span]:duration-200 peer-checked:[&>span]:translate-x-4">
+                <span className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white dark:bg-zinc-900 shadow-sm shadow-black/30 ring-1 ring-zinc-200/80 dark:ring-white/10" />
               </span>
             </label>
 
             {/* Close */}
-            <button
-              className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-200 hover:shadow-sm hover:text-zinc-900 transition-all duration-200 cursor-pointer"
+            <Button
+              variant='outline'
               onClick={onClose}
             >
               Close
-            </button>
+            </Button>
           </div>
         </div>
         {/* Body */}
@@ -152,7 +147,7 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false, onLi
             </div>
           )}
           {!reportToShow ? (
-            <div className="py-8 text-center text-sm text-zinc-500">
+            <div className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
               {live ? 'Waiting for live data…' : loading ? 'Loading snapshot…' : 'No data available.'}
             </div>
           ) : (
@@ -160,7 +155,7 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false, onLi
               {rows.map((r) => {
                 const { friendly, raw } = mapFriendly(r.detail, r.status);
                 return (
-                <li key={r.id} className="border-b border-zinc-300 p-2 last:border-b-0">
+                <li key={r.id} className="border-b border-zinc-300 dark:border-zinc-600 p-2 last:border-b-0">
                   {/* top row: label left, status pill right */}
                   <div className="flex items-center justify-between gap-3">
                     {/* status name/label */}
@@ -176,12 +171,12 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false, onLi
                   {/* second row: detail (left, clamped) · meta (right, nowrap) */}
                   <div className="mt-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                     <p
-                      className="min-w-0 flex-1 text-xs text-zinc-600 line-clamp-1 [overflow-wrap:anywhere]"
+                      className="min-w-0 flex-1 text-xs text-zinc-600 dark:text-zinc-500 line-clamp-1 wrap-anywhere"
                       title={raw && raw !== friendly ? raw : friendly}
                     >
                       {friendly}
                     </p>
-                    <div className="shrink-0 whitespace-nowrap text-xs text-zinc-500 [font-variant-numeric:tabular-nums]">
+                    <div className="shrink-0 whitespace-nowrap text-xs text-zinc-500 dark:text-zinc-500 [font-variant-numeric:tabular-nums]">
                       {formatMeta(r.startedAt, r.finishedAt, r.durationMs, r.status)}
                     </div>
                   </div>
@@ -192,21 +187,21 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false, onLi
           )}
         </div>
         {/* Footer */}
-        <div className="flex items-center justify-between gap-3 border-t px-3 py-2 min-h-[51px]">
-          <div className="text-xs text-zinc-500">
+        <div className="flex items-center justify-between gap-3 border-t dark:border-zinc-600 px-3 py-2 min-h-[51px]">
+          <div className="text-xs text-zinc-500 dark:text-zinc-400">
             {live
               ? 'Live updates every ~8s.'
               : "Static snapshot. Click 'Run Checks ↻' to re-run checks."}
           </div>
           {!live && (
             <div className="flex items-center gap-2">
-              <button
-                className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-200 hover:shadow-sm hover:text-zinc-900 transition-all duration-200 disabled:opacity-50 cursor-pointer"
+              <Button
+                variant='outline'
                 onClick={refreshOnce}
                 disabled={loading}
               >
                 {loading ? 'Refreshing…' : 'Run Checks ↻'}
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -219,15 +214,15 @@ export default function HealthModal({ isOpen, onClose, defaultLive = false, onLi
 function statusToClasses(status: HealthStatus) {
   switch (status) {
     case 'ok':
-      return 'border-emerald-300 bg-emerald-50 text-emerald-700';
+      return 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500/60 dark:bg-emerald-900/30 dark:text-emerald-200';
     case 'warning':
-      return 'border-amber-300 bg-amber-50 text-amber-700';
+      return 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-500/60 dark:bg-amber-900/30 dark:text-amber-200';
     case 'error':
-      return 'border-red-300 bg-red-50 text-red-700';
+      return 'border-red-300 bg-red-50 text-red-700 dark:border-red-500/60 dark:bg-red-900/30 dark:text-red-200';
     case 'checking':
-      return 'border-blue-300 bg-blue-50 text-blue-700';
+      return 'border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-500/60 dark:bg-blue-900/30 dark:text-blue-200';
     default:
-      return 'border-zinc-300 bg-zinc-50 text-zinc-700';
+      return 'border-zinc-300 bg-zinc-50 text-zinc-700 dark:border-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-200';
   }
 }
 

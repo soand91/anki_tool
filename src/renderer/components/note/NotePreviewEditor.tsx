@@ -304,7 +304,7 @@ export default function NotePreviewEditor({ ankiconnectHealthy }: Props) {
             <div className='flex items-center gap-2'>
               {/* Helper text */}
               {clozeDetected && (
-                <span className='rounded-md bg-amber-50 p-0 text-[10px] text-amber-700'>
+                <span className='rounded-md border border-amber-200 bg-amber-50 px-1 py-0 text-[10px] text-amber-700 dark:border-amber-500/60 dark:bg-amber-900/30 dark:text-amber-200'>
                   Cloze detected
                 </span>
               )}
